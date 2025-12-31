@@ -21,6 +21,8 @@ router.get("/profile", getUserProfile);
 router.put("/:id", updateUser);
 // delete user (only admin and the user himself can access)
 router.delete("/:id", deleteUser);
+
+// public route
 // login route
 router.post("/login", login);
 // register route
