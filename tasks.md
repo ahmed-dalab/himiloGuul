@@ -1,98 +1,116 @@
-<!-- Ahmed Tasks -->
+# Team Tasks Breakdown
 
-### **Browsing Features**
+## 👤 Ahmed - Business Browsing & Cloudinary
 
-- [ ] GET /api/business - Browse with filters
-  - [ ] Filter by category
-  - [ ] Filter by location
-  - [ ] Filter by price range
-  - [ ] Search by name/description
-  - [ ] Pagination
-  - [ ] Sorting
+### 1. Database Schemas
 
-### **Cloudinary Integration**
+- [ ] Create **Role** model (name field only)
+- [ ] Update **User** model: add `roleId` field
 
-- [ ] Set up Cloudinary config
-- [ ] Create upload middleware
+### 2. Cloudinary Setup
+
+- [ ] Configure Cloudinary connection
+- [ ] Create image upload middleware
 - [ ] Handle multiple image uploads
-- [ ] Delete images on business delete
+- [ ] Delete images when business is deleted
 - [ ] Validate image types and sizes
 
-### **Admin Business Management**
+### 3. Business Browsing API
 
-- [ ] GET /api/admin/businesses - List all businesses
-- [ ] GET /api/admin/businesses/pending - List pending
-- [ ] PUT /api/admin/businesses/:id/approve - Approve
-- [ ] PUT /api/admin/businesses/:id/reject - Reject
+- [ ] `GET /api/business` - Browse businesses with:
+  - Filter by category
+  - Filter by location
+  - Filter by price range
+  - Search by name/description
+  - Pagination
+  - Sorting
 
-<!-- Nasteha Tasks -->
+### 4. Admin Business Management
 
-### **Model Tasks**
+- [ ] `GET /api/admin/businesses` - List all businesses
+- [ ] `GET /api/admin/businesses/pending` - List pending businesses
+- [ ] `PUT /api/admin/businesses/:id/approve` - Approve business
+- [ ] `PUT /api/admin/businesses/:id/reject` - Reject business
 
-- [ ] Add phone field to User model
-- [ ] Add location field to User model
-- [ ] Add profilePicture field (for Cloudinary URL)
-- [ ] Add isBanned field (boolean, default false)
-- [ ] Add validation for email format
-- [ ] Add indexes for email and role
+---
 
-### **Profile Endpoints**
+## 👤 Nasteha - User Profiles & Management
 
-- [ ] GET /api/users/profile - Get current user profile
-- [ ] PUT /api/users/profile - Update own profile
-- [ ] GET /api/users/:id - Get user public info
-- [ ] PUT /api/users/:id - Update user (self or admin)
+### 1. Database Schemas
 
-### **Admin User Management**
+- [ ] Create **Menu** model (name, path, parentId fields)
+- [ ] Update **User** model:
+  - Add `phone` field
+  - Add `location` field
+  - Add `profilePicture` field (Cloudinary URL)
+  - Add `isBanned` field (boolean, default false)
+  - Add email format validation
+  - Add indexes for email and role
 
-- [ ] GET /api/admin/users - List all users
-- [ ] PUT /api/admin/users/:id/ban - Ban/unban user
-- [ ] DELETE /api/admin/users/:id - Delete user
+### 2. Profile Endpoints
 
-<!-- Iidle Tasks -->
+- [ ] `GET /api/users/profile` - Get current user profile
+- [ ] `PUT /api/users/profile` - Update own profile
+- [ ] `GET /api/users/:id` - Get user public info
+- [ ] `PUT /api/users/:id` - Update user (self or admin)
 
-### **Model Tasks**
+### 3. Admin User Management
 
-- [ ] Add owner field (User reference)
-- [ ] Add description field
-- [ ] Add category field (enum: restaurant, retail, service, etc.)
-- [ ] Add askingPrice field (number)
-- [ ] Add location field
-- [ ] Add images array (url, publicId)
-- [ ] Add status field (pending, approved, rejected)
-- [ ] Add isSold field (boolean)
-- [ ] Add proper indexes
+- [ ] `GET /api/admin/users` - List all users
+- [ ] `PUT /api/admin/users/:id/ban` - Ban/unban user
+- [ ] `DELETE /api/admin/users/:id` - Delete user
 
-### **CRUD Endpoints**
+---
 
-- [ ] POST /api/business - Create business
-- [ ] GET /api/business/my - Get my businesses
-- [ ] GET /api/business/:id - Get business by ID
-- [ ] PUT /api/business/:id - Update business
-- [ ] DELETE /api/business/:id - Delete business
+## 👤 Iidle - Business CRUD Operations
 
-<!-- Zeyn Tasks -->
+### 1. Database Schemas
 
-### **Model Tasks**
+- [ ] Create **Permission** model (name, menuId fields)
+- [ ] Update **Business** model:
+  - Add `owner` field (User reference)
+  - Add `description` field
+  - Add `category` field (enum: restaurant, retail, service, etc.)
+  - Add `askingPrice` field (number)
+  - Add `location` field
+  - Add `images` array (url, publicId)
+  - Add `status` field (pending, approved, rejected)
+  - Add `isSold` field (boolean)
+  - Add proper indexes
 
-- [ ] Create Contact model
-- [ ] Add buyerRef (User reference)
-- [ ] Add sellerRef (User reference)
-- [ ] Add businessRef (Business reference)
-- [ ] Add message field (text)
-- [ ] Add status field (pending, responded, closed)
-- [ ] Ensure unique contact per buyer-seller-business
-- [ ] Add timestamps
+### 2. Business CRUD Endpoints
 
-### **Contact Endpoints**
+- [ ] `POST /api/business` - Create business
+- [ ] `GET /api/business/my` - Get my businesses
+- [ ] `GET /api/business/:id` - Get business by ID
+- [ ] `PUT /api/business/:id` - Update business
+- [ ] `DELETE /api/business/:id` - Delete business
 
-- [ ] POST /api/contacts - Create contact
-- [ ] GET /api/contacts/my - Get my contacts
-- [ ] GET /api/contacts/:id - Get contact details
-- [ ] PUT /api/contacts/:id - Update contact
-- [ ] DELETE /api/contacts/:id - Delete contact
+---
 
-### **Admin Contact Management**
+## 👤 Alasow - Contact System & Permissions
 
-- [ ] GET /api/admin/contacts - List all contacts
-- [ ] DELETE /api/admin/contacts/:id - Delete contact
+### 1. Database Schemas
+
+- [ ] Create **RolePermission** model (roleId, permissionId fields)
+- [ ] Create **Contact** model:
+  - `buyerRef` (User reference)
+  - `sellerRef` (User reference)
+  - `businessRef` (Business reference)
+  - `message` field (text)
+  - `status` field (pending, responded, closed)
+  - Ensure unique contact per buyer-seller-business
+  - Add timestamps
+
+### 2. Contact Endpoints
+
+- [ ] `POST /api/contacts` - Create contact
+- [ ] `GET /api/contacts/my` - Get my contacts
+- [ ] `GET /api/contacts/:id` - Get contact details
+- [ ] `PUT /api/contacts/:id` - Update contact
+- [ ] `DELETE /api/contacts/:id` - Delete contact
+
+### 3. Admin Contact Management
+
+- [ ] `GET /api/admin/contacts` - List all contacts
+- [ ] `DELETE /api/admin/contacts/:id` - Delete contact
