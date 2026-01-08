@@ -22,10 +22,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    role: {
-      type: String,
-      enum: ["admin", "seller", "user"],
-      default: "user",
+    roleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
     },
     phone: {
       type: String,
@@ -44,9 +43,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Add indexes for email and role
+// Add indexes for email and roleId
 userSchema.index({ email: 1 });
-userSchema.index({ role: 1 });
+userSchema.index({ roleId: 1 });
 
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();

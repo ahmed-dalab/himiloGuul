@@ -14,7 +14,7 @@ const protect = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id);
+      const user = await User.findById(decoded.id).populate("roleId");
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });
@@ -22,6 +22,11 @@ const protect = async (req, res, next) => {
 
       if (user.isBanned) {
         return res.status(403).json({ message: "User is banned" });
+      }
+
+      // Add role name for backward compatibility
+      if (user.roleId) {
+        user.role = user.roleId.name;
       }
 
       req.user = user;
@@ -38,12 +43,22 @@ const protect = async (req, res, next) => {
 
 // Authorize based on roles
 const authorize = (...roles) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Populate role if not already populated
+    if (!req.user.role && req.user.roleId) {
+      await req.user.populate("roleId");
+      if (req.user.roleId) {
+        req.user.role = req.user.roleId.name;
+      }
+    }
+
+    const userRole = req.user.role || (req.user.roleId?.name);
+
+    if (!userRole || !roles.includes(userRole)) {
       return res
         .status(403)
         .json({ message: "Access denied. Insufficient permissions" });
