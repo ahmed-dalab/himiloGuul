@@ -7,6 +7,8 @@ const {
   listAllUsers,
   banUnbanUser,
   deleteUser,
+  listAllContacts,
+  deleteContact,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
@@ -26,6 +28,10 @@ router.put("/businesses/:id/reject", rejectBusiness);
 router.get("/users", listAllUsers);
 router.put("/users/:id/ban", banUnbanUser);
 router.delete("/users/:id", deleteUser);
+
+// Contact management routes
+router.get("/contacts", listAllContacts);
+router.delete("/contacts/:id", deleteContact);
 
 module.exports = router;
 

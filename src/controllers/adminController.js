@@ -1,5 +1,6 @@
 const Business = require("../models/Business");
 const User = require("../models/User");
+const Contact = require("../models/Contact");
 
 // List all businesses (admin only)
 const listAllBusinesses = async (req, res) => {
@@ -369,6 +370,99 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// List all contacts (admin only)
+const listAllContacts = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Build query
+    const query = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sorting
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // Execute query
+    const contacts = await Contact.find(query)
+      .populate("buyerRef", "name email phone")
+      .populate("sellerRef", "name email phone")
+      .populate("businessRef", "name category askingPrice location")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count for pagination
+    const total = await Contact.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: contacts,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Delete contact (admin only)
+const deleteContact = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contact = await Contact.findById(id);
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact not found",
+      });
+    }
+
+    await Contact.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Contact deleted successfully",
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid contact ID",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   listAllBusinesses,
   listPendingBusinesses,
@@ -377,5 +471,7 @@ module.exports = {
   listAllUsers,
   banUnbanUser,
   deleteUser,
+  listAllContacts,
+  deleteContact,
 };
 
