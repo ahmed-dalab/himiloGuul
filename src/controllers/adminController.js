@@ -1,4 +1,5 @@
 const Business = require("../models/Business");
+const User = require("../models/User");
 
 // List all businesses (admin only)
 const listAllBusinesses = async (req, res) => {
@@ -185,10 +186,196 @@ const rejectBusiness = async (req, res) => {
   }
 };
 
+// List all users (admin only)
+const listAllUsers = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      roleId,
+      isBanned,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      search,
+    } = req.query;
+
+    // Build query
+    const query = {};
+
+    if (roleId) {
+      query.roleId = roleId;
+    }
+
+    if (isBanned !== undefined) {
+      query.isBanned = isBanned === "true";
+    }
+
+    // Search by name or email
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sorting
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // Execute query
+    const users = await User.find(query)
+      .populate("roleId", "name")
+      .select("-password")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count for pagination
+    const total = await User.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Ban/unban user (admin only)
+const banUnbanUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBanned } = req.body;
+
+    // Validate input
+    if (typeof isBanned !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isBanned must be a boolean value",
+      });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Prevent admin from banning themselves
+    if (req.user._id.toString() === id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot ban/unban yourself",
+      });
+    }
+
+    // Prevent banning other admins (optional - you can remove this if you want to allow it)
+    // You might want to check if the user being banned is an admin
+    // This depends on your business logic
+
+    user.isBanned = isBanned;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User ${isBanned ? "banned" : "unbanned"} successfully`,
+      data: user.toJSON(),
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Delete user (admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (req.user._id.toString() === id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete yourself",
+      });
+    }
+
+    // Check if user has associated businesses
+    const userBusinesses = await Business.find({ owner: id });
+    if (userBusinesses.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot delete user with associated businesses. Please delete or reassign businesses first.",
+        businessesCount: userBusinesses.length,
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   listAllBusinesses,
   listPendingBusinesses,
   approveBusiness,
   rejectBusiness,
+  listAllUsers,
+  banUnbanUser,
+  deleteUser,
 };
 

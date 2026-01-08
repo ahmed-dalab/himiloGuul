@@ -4,6 +4,9 @@ const {
   listPendingBusinesses,
   approveBusiness,
   rejectBusiness,
+  listAllUsers,
+  banUnbanUser,
+  deleteUser,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
@@ -18,6 +21,11 @@ router.get("/businesses", listAllBusinesses);
 router.get("/businesses/pending", listPendingBusinesses);
 router.put("/businesses/:id/approve", approveBusiness);
 router.put("/businesses/:id/reject", rejectBusiness);
+
+// User management routes
+router.get("/users", listAllUsers);
+router.put("/users/:id/ban", banUnbanUser);
+router.delete("/users/:id", deleteUser);
 
 module.exports = router;
 

@@ -10,6 +10,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const permissionRoutes = require("./routes/permissionRoutes");
 const rolePermissionRoutes = require("./routes/rolePermissionRoutes");
+const menuRoutes = require("./routes/menuRoutes");
 const app = express();
 
 // Connect to the database
@@ -25,6 +26,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/role-permissions", rolePermissionRoutes);
+app.use("/api/menus", menuRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).send("Server is healthy");
