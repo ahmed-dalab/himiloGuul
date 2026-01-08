@@ -50,7 +50,8 @@ const updateUserProfile = async (req, res) => {
 
     if (!isValidOperation) {
       return res.status(400).json({
-        message: "Invalid updates. Allowed fields: name, phone, location, profilePicture",
+        message:
+          "Invalid updates. Allowed fields: name, phone, location, profilePicture",
       });
     }
 
@@ -72,10 +73,15 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-//  get all users
+//  get all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
-    res.status(200).json({ message: "Get all users" });
+    const users = await User.find();
+
+    res.status(200).json({
+      message: "Users retrieved successfully",
+      users: users.map((user) => user.toJSON()),
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -117,7 +123,8 @@ const updateUser = async (req, res) => {
     // Check if user is updating themselves or is an admin
     if (req.user._id.toString() !== id && req.user.role !== "admin") {
       return res.status(403).json({
-        message: "Access denied. You can only update your own profile or be an admin",
+        message:
+          "Access denied. You can only update your own profile or be an admin",
       });
     }
 
@@ -131,7 +138,15 @@ const updateUser = async (req, res) => {
     let allowedUpdates;
     if (req.user.role === "admin") {
       // Admin can update all fields except password (password should be updated separately)
-      allowedUpdates = ["name", "email", "phone", "location", "profilePicture", "role", "isBanned"];
+      allowedUpdates = [
+        "name",
+        "email",
+        "phone",
+        "location",
+        "profilePicture",
+        "role",
+        "isBanned",
+      ];
     } else {
       // Users can only update their own basic profile fields
       allowedUpdates = ["name", "phone", "location", "profilePicture"];
@@ -172,11 +187,67 @@ const updateUser = async (req, res) => {
   }
 };
 
-//  delete user
+// Admin: ban / unban user
+const banOrUnbanUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBanned } = req.body;
+
+    if (typeof isBanned !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "isBanned must be a boolean (true or false)" });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isBanned = isBanned;
+    await user.save();
+
+    res.status(200).json({
+      message: `User has been ${isBanned ? "banned" : "unbanned"} successfully`,
+      user: user.toJSON(),
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+//  delete user (self or admin)
 const deleteUser = async (req, res) => {
   try {
-    res.status(200).json({ message: "Delete user" });
+    const { id } = req.params;
+
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    // Allow admin to delete anyone, or user to delete themselves
+    if (req.user._id.toString() !== id && req.user.role !== "admin") {
+      return res.status(403).json({
+        message:
+          "Access denied. You can only delete your own account or be an admin",
+      });
+    }
+
+    const user = await User.findByIdAndDelete(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -190,4 +261,5 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
+  banOrUnbanUser,
 };
