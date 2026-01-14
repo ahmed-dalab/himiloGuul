@@ -4,20 +4,12 @@ const {
   getUserById,
   getUserProfile,
   updateUserProfile,
-  login,
-  registerUser,
   updateUser,
   deleteUser,
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
 const router = Router();
-
-// public route
-// login route
-router.post("/login", login);
-// register route
-router.post("/register", registerUser);
 
 // Protected routes (authentication required)
 // Note: /profile routes must come before /:id routes to avoid route conflicts

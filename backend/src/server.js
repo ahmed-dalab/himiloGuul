@@ -4,6 +4,7 @@ const connectDB = require("./config/db");
 require("dotenv").config();
 
 // Define routes
+const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const BusinessRoutes = require("./routes/businessRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(morgan("dev"));
 
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/business", BusinessRoutes);
 app.use("/api/admin", adminRoutes);

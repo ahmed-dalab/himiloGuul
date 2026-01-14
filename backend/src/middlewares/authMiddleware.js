@@ -14,8 +14,8 @@ const protect = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).populate("roleId");
-
+      const user = await User.findById(decoded.id).populate("roleId", "name");
+      
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -24,9 +24,11 @@ const protect = async (req, res, next) => {
         return res.status(403).json({ message: "User is banned" });
       }
 
-      // Add role name for backward compatibility
+      // Ensure role is set in req.user for use in authorize middleware
       if (user.roleId) {
         user.role = user.roleId.name;
+      } else {
+        user.role = null;
       }
 
       req.user = user;
@@ -48,15 +50,16 @@ const authorize = (...roles) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // Populate role if not already populated
+    // Ensure role is populated from roleId if not already set
     if (!req.user.role && req.user.roleId) {
-      await req.user.populate("roleId");
+      await req.user.populate("roleId", "name");
       if (req.user.roleId) {
         req.user.role = req.user.roleId.name;
       }
     }
 
-    const userRole = req.user.role || (req.user.roleId?.name);
+    // Use role from req.user (set by protect middleware)
+    const userRole = req.user.role;
 
     if (!userRole || !roles.includes(userRole)) {
       return res
