@@ -16,8 +16,8 @@ router.get("/", getAllMenus);
 // GET /api/menus/:id - Get menu by ID
 router.get("/:id", getMenuById);
 
-// POST /api/menus - Create a new menu (protected route)
-router.post("/", protect, createMenu);
+// POST /api/menus - Create a new menu (admin only)
+router.post("/", protect, authorize("admin"), createMenu);
 
 // PUT /api/menus/:id - Update menu (protected route)
 router.put("/:id", protect, updateMenu);
