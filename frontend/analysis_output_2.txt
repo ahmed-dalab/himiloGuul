@@ -1,0 +1,5 @@
+Analyzing frontend...                                           
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\abstract_header_painter.dart:27:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\widgets\feature_illustration.dart:95:46 - deprecated_member_use
+

@@ -7,6 +7,7 @@ const {
   createBusiness,
   updateBusiness,
   deleteBusiness,
+  approveBusiness,
 } = require("../controllers/businessController");
 const { authorize, protect } = require("../middlewares/authMiddleware");
 const { handleMultipleUpload } = require("../middlewares/uploadMiddleware");
@@ -15,9 +16,13 @@ const router = Router();
 
 // Browse businesses (public endpoint - no auth required)
 router.get("/", browseBusinesses);
-
+// business view for public - only approved businesses
+router.get("/:id", getBusinessById);
 // Get my businesses (seller/owner only)
 router.get("/my", protect, authorize("seller", "admin"), getMyBusinesses);
+
+// Approve business (admin only) - must be before /:id route
+router.put("/:id/approve", protect, authorize("admin"), approveBusiness);
 
 // get business by id (public for approved businesses)
 // Owners can use /my endpoint to view their pending businesses
@@ -29,7 +34,7 @@ router.post(
   protect,
   authorize("seller", "admin"),
   handleMultipleUpload,
-  createBusiness
+  createBusiness,
 );
 
 // update business (only business owner or admin can access)
@@ -38,7 +43,7 @@ router.put(
   protect,
   authorize("seller", "admin"),
   handleMultipleUpload,
-  updateBusiness
+  updateBusiness,
 );
 
 // delete business (only admin and the business owner can access)

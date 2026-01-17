@@ -88,6 +88,42 @@ const browseBusinesses = async (req, res) => {
     });
   }
 };
+const viewBusinessById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await Business.findById(id).populate(
+      "owner",
+      "name email phone",
+    );
+
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        message: "Business not found",
+      });
+    }
+
+    // Public and authenticated users can only view approved and unsold businesses
+    if (business.status !== "approved" || business.isSold) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. This business is not available for viewing",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: business,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 
 // get all businesses (only admin can access)
 const getAllBusinesses = async (req, res) => {
@@ -160,7 +196,7 @@ const getBusinessById = async (req, res) => {
 
     const business = await Business.findById(id).populate(
       "owner",
-      "name email phone"
+      "name email phone",
     );
 
     if (!business) {
@@ -174,8 +210,7 @@ const getBusinessById = async (req, res) => {
     if (req.user) {
       // Check if user is admin or owner
       const isAdmin = req.user.role === "admin";
-      const isOwner =
-        business.owner._id.toString() === req.user._id.toString();
+      const isOwner = business.owner._id.toString() === req.user._id.toString();
 
       // Owners and admins can view any status
       if (isAdmin || isOwner) {
@@ -427,6 +462,53 @@ const deleteBusiness = async (req, res) => {
   }
 };
 
+// PUT /api/business/:id/approve - Approve business (admin only)
+const approveBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await Business.findById(id);
+
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        message: "Business not found",
+      });
+    }
+
+    if (business.status === "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Business is already approved",
+      });
+    }
+
+    business.status = "approved";
+    await business.save();
+
+    // Populate owner for response
+    await business.populate("owner", "name email phone");
+
+    res.status(200).json({
+      success: true,
+      message: "Business approved successfully",
+      data: business,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid business ID",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   browseBusinesses,
   getAllBusinesses,
@@ -435,4 +517,5 @@ module.exports = {
   createBusiness,
   updateBusiness,
   deleteBusiness,
+  approveBusiness,
 };
