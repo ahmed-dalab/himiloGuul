@@ -77,12 +77,19 @@ class _BrowseBusinessScreenState extends State<BrowseBusinessScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.darkGray),
-            onPressed: () {
-              // Expand search bar or show search dialog if needed
-              // For now, search is in the body
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: TextButton.icon(
+              onPressed: () {
+                context.push(AppRoutes.login);
+              },
+              icon: const Icon(Icons.login, size: 20),
+              label: const Text('Login'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryBlue,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),

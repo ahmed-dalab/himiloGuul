@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'presentation/providers/business_provider.dart';
+import 'presentation/providers/auth_provider.dart';
 import 'presentation/routes/app_router.dart';
 import 'config/app_theme.dart';
 
@@ -16,6 +17,7 @@ class HimiloGuulApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => BusinessProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MaterialApp.router(
         title: 'HimiloGuul',
