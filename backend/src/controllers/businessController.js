@@ -88,51 +88,6 @@ const browseBusinesses = async (req, res) => {
     });
   }
 };
-const viewBusinessById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const business = await Business.findById(id).populate(
-      "owner",
-      "name email phone",
-    );
-
-    if (!business) {
-      return res.status(404).json({
-        success: false,
-        message: "Business not found",
-      });
-    }
-
-    // Public and authenticated users can only view approved and unsold businesses
-    if (business.status !== "approved" || business.isSold) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. This business is not available for viewing",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: business,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
-
-// get all businesses (only admin can access)
-const getAllBusinesses = async (req, res) => {
-  try {
-    res.status(200).json({ message: "Get all businesses" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
 // Get my businesses (seller/owner only)
 const getMyBusinesses = async (req, res) => {
   try {
@@ -462,6 +417,48 @@ const deleteBusiness = async (req, res) => {
   }
 };
 
+// PUT /api/business/:id/sold - Mark business as sold (owner or admin)
+const markBusinessAsSold = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isSold } = req.body;
+
+    const business = await Business.findById(id);
+
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        message: "Business not found",
+      });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isOwner = business.owner.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only the owner or admin can mark as sold",
+      });
+    }
+
+    business.isSold = isSold === true || isSold === "true";
+    await business.save();
+    await business.populate("owner", "name email phone");
+
+    res.status(200).json({
+      success: true,
+      message: `Business ${business.isSold ? "marked as sold" : "marked as available"}`,
+      data: business,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ success: false, message: "Invalid business ID" });
+    }
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
 // PUT /api/business/:id/approve - Approve business (admin only)
 const approveBusiness = async (req, res) => {
   try {
@@ -511,11 +508,11 @@ const approveBusiness = async (req, res) => {
 
 module.exports = {
   browseBusinesses,
-  getAllBusinesses,
   getMyBusinesses,
   getBusinessById,
   createBusiness,
   updateBusiness,
   deleteBusiness,
   approveBusiness,
+  markBusinessAsSold,
 };

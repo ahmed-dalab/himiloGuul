@@ -262,13 +262,16 @@ const listAllUsers = async (req, res) => {
 const banUnbanUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isBanned } = req.body;
+    let { isBanned } = req.body;
 
-    // Validate input
+    // Accept boolean or string "true"/"false"
+    if (typeof isBanned === "string") {
+      isBanned = isBanned.toLowerCase() === "true";
+    }
     if (typeof isBanned !== "boolean") {
       return res.status(400).json({
         success: false,
-        message: "isBanned must be a boolean value",
+        message: "isBanned is required and must be a boolean or string 'true'/'false'",
       });
     }
 

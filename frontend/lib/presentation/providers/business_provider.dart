@@ -37,13 +37,16 @@ class BusinessProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchBusinessById(String id) async {
+  Future<void> fetchBusinessById(String id, {String? token}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _selectedBusiness = await _businessService.getBusinessById(id);
+      final response = await _businessService.getBusinessById(id, token: token);
+      // Extract business data from response
+      final businessData = response['data'] ?? response;
+      _selectedBusiness = Business.fromJson(businessData);
     } catch (e) {
       _error = e.toString();
     } finally {

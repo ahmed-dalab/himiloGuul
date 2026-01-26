@@ -302,10 +302,9 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Define allowed updates based on role
+    // Define allowed updates based on role (self cannot change role, email, isBanned)
     let allowedUpdates;
     if (req.user.role === "admin") {
-      // Admin can update all fields except password (password should be updated separately)
       allowedUpdates = [
         "name",
         "email",
@@ -313,12 +312,10 @@ const updateUser = async (req, res) => {
         "phone",
         "location",
         "profilePicture",
-        "role",
         "isBanned",
       ];
     } else {
-      // Users can only update their own basic profile fields
-      allowedUpdates = ["name", "phone", "role", "location", "profilePicture"];
+      allowedUpdates = ["name", "phone", "location", "profilePicture"];
     }
 
     const updates = Object.keys(req.body);
@@ -328,20 +325,32 @@ const updateUser = async (req, res) => {
 
     if (!isValidOperation) {
       return res.status(400).json({
-        message: `Invalid updates. Allowed fields: ${allowedUpdates.join(
-          ", "
-        )}`,
+        message: `Invalid updates. Allowed fields: ${allowedUpdates.join(", ")}`,
       });
     }
 
-    // Update user fields
+    // Handle "role" separately: resolve role name to roleId (admin only)
+    if (updates.includes("role") && req.user.role === "admin" && req.body.role) {
+      const roleDoc = await Role.findOne({
+        name: { $regex: `^${String(req.body.role).trim()}$`, $options: "i" },
+      });
+      if (!roleDoc) {
+        return res.status(400).json({ message: "Role not found" });
+      }
+      user.roleId = roleDoc._id;
+    }
+
+    // Update other fields (skip "role" - it is not a schema field; we set roleId above)
     updates.forEach((update) => {
+      if (update === "role") return;
       if (req.body[update] !== undefined) {
         user[update] = req.body[update];
       }
     });
 
     await user.save();
+    await user.populate("roleId", "name");
+    if (user.roleId) user.role = user.roleId.name;
 
     res.status(200).json({
       message: "User updated successfully",

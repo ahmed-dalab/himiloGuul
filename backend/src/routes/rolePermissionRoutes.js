@@ -35,10 +35,9 @@ router.get("/:id", getRolePermissionById);
 // Update role-permission assignment
 router.put("/:id", updateRolePermission);
 
+// Delete by roleId and permissionId (must be before /:id to avoid "role" matching as id)
+router.delete("/role/:roleId/permission/:permissionId", deleteRolePermissionByRoleAndPermission);
 // Delete role-permission assignment by ID
 router.delete("/:id", deleteRolePermission);
-
-// Delete role-permission assignment by roleId and permissionId
-router.delete("/role/:roleId/permission/:permissionId", deleteRolePermissionByRoleAndPermission);
 
 module.exports = router;

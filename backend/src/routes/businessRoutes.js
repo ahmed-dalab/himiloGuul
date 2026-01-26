@@ -1,13 +1,13 @@
 const { Router } = require("express");
 const {
   browseBusinesses,
-  getAllBusinesses,
   getMyBusinesses,
   getBusinessById,
   createBusiness,
   updateBusiness,
   deleteBusiness,
   approveBusiness,
+  markBusinessAsSold,
 } = require("../controllers/businessController");
 const { authorize, protect } = require("../middlewares/authMiddleware");
 const { handleMultipleUpload } = require("../middlewares/uploadMiddleware");
@@ -16,17 +16,15 @@ const router = Router();
 
 // Browse businesses (public endpoint - no auth required)
 router.get("/", browseBusinesses);
-// business view for public - only approved businesses
-router.get("/:id", getBusinessById);
-// Get my businesses (seller/owner only)
+// Get my businesses (seller/owner only) - must be before /:id
 router.get("/my", protect, authorize("seller", "admin"), getMyBusinesses);
-
-// Approve business (admin only) - must be before /:id route
-router.put("/:id/approve", protect, authorize("admin"), approveBusiness);
-
-// get business by id (public for approved businesses)
-// Owners can use /my endpoint to view their pending businesses
+// Business by id: public for approved; owner/admin for any status
 router.get("/:id", getBusinessById);
+
+// Approve business (admin only)
+router.put("/:id/approve", protect, authorize("admin"), approveBusiness);
+// Mark as sold (owner or admin)
+router.put("/:id/sold", protect, authorize("seller", "admin"), markBusinessAsSold);
 
 // create business (sellers/owners can create)
 router.post(

@@ -7,6 +7,11 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/layouts/admin_layout.dart';
 import '../screens/layouts/seller_layout.dart';
+import '../screens/admin/users_screen.dart';
+import '../screens/admin/roles_screen.dart';
+import '../screens/admin/menus_screen.dart';
+import '../screens/admin/permissions_screen.dart';
+import '../screens/admin/settings_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -35,6 +40,27 @@ class AppRouter {
       GoRoute(
         path: '/seller',
         builder: (context, state) => const SellerLayout(),
+      ),
+      // Admin management routes
+      GoRoute(
+        path: AppRoutes.userManagement,
+        builder: (context, state) => const UsersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.rolesManagement,
+        builder: (context, state) => const RolesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.menusManagement,
+        builder: (context, state) => const MenusScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.permissionsManagement,
+        builder: (context, state) => const PermissionsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
       ),
       // Add other routes here as they are implemented
       GoRoute(

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../config/app_colors.dart';
+import '../../../core/models/menu_model.dart';
 import '../../routes/app_routes.dart';
 
 class SellerLayout extends StatefulWidget {
@@ -15,18 +16,38 @@ class SellerLayout extends StatefulWidget {
 class _SellerLayoutState extends State<SellerLayout> {
   int _selectedIndex = 0;
 
+  // Order bottom nav items: Home, Business, Deals, Profile
+  List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
+    const order = ['/', '/business', '/deals', '/profile'];
+    final ordered = <AppMenu>[];
+    for (final path in order) {
+      try {
+        final menu = items.firstWhere((item) => item.path == path);
+        ordered.add(menu);
+      } catch (e) {
+        // Menu not found, skip it
+        continue;
+      }
+    }
+    return ordered;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final menuItems = authProvider.menuItems;
+    final bottomNavItems = authProvider.bottomNavItems;
     
-     if (_selectedIndex >= menuItems.length) {
+     if (_selectedIndex >= bottomNavItems.length) {
        _selectedIndex = 0;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seller Dashboard'),
+        title: const Text(
+          'HimiloGuul',
+          textAlign: TextAlign.center,
+        ),
+        centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
@@ -47,7 +68,7 @@ class _SellerLayoutState extends State<SellerLayout> {
             const Icon(Icons.storefront, size: 64, color: AppColors.primaryBlue),
             const SizedBox(height: 16),
             Text(
-              'Seller ${menuItems.isNotEmpty ? menuItems[_selectedIndex] : ""} Area',
+              'Seller ${_getOrderedBottomNavItems(bottomNavItems).isNotEmpty ? _getOrderedBottomNavItems(bottomNavItems)[_selectedIndex].name : ""} Area',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
              const SizedBox(height: 8),
@@ -65,18 +86,11 @@ class _SellerLayoutState extends State<SellerLayout> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        items: menuItems.map((item) {
-           IconData icon;
-          switch (item) {
-            case 'Dashboard': icon = Icons.dashboard; break;
-            case 'My Shops': icon = Icons.store; break;
-            case 'Orders': icon = Icons.shopping_bag; break;
-             case 'Profile': icon = Icons.person; break;
-            default: icon = Icons.circle;
-          }
+        items: _getOrderedBottomNavItems(bottomNavItems).map((menu) {
           return BottomNavigationBarItem(
-            icon: Icon(icon),
-            label: item,
+            icon: Icon(menu.icon, color: Colors.grey),
+            activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
+            label: menu.name,
           );
         }).toList(),
       ),

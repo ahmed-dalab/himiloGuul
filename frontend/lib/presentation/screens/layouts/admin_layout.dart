@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../config/app_colors.dart';
+import '../../../core/models/menu_model.dart';
 import '../../routes/app_routes.dart';
 
 class AdminLayout extends StatefulWidget {
@@ -14,6 +15,48 @@ class AdminLayout extends StatefulWidget {
 
 class _AdminLayoutState extends State<AdminLayout> {
   int _selectedIndex = 0;
+
+  // Order bottom nav items: Home, Business, Deals, Profile
+  List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
+    const order = ['/', '/business', '/deals', '/profile'];
+    final ordered = <AppMenu>[];
+    for (final path in order) {
+      try {
+        final menu = items.firstWhere((item) => item.path == path);
+        ordered.add(menu);
+      } catch (e) {
+        // Menu not found, skip it
+        continue;
+      }
+    }
+    return ordered;
+  }
+
+  // Navigate to screen based on menu path
+  void _navigateToScreen(BuildContext context, String path) {
+    switch (path) {
+      case '/admin/users':
+        context.go(AppRoutes.userManagement);
+        break;
+      case '/admin/roles':
+        context.go(AppRoutes.rolesManagement);
+        break;
+      case '/admin/menus':
+        context.go(AppRoutes.menusManagement);
+        break;
+      case '/admin/permissions':
+        context.go(AppRoutes.permissionsManagement);
+        break;
+      case '/admin/settings':
+        context.go(AppRoutes.settings);
+        break;
+      default:
+        // If path doesn't match, show a message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Navigation to $path not implemented yet')),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +73,11 @@ class _AdminLayoutState extends State<AdminLayout> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Panel - ${bottomNavItems.isNotEmpty ? bottomNavItems[_selectedIndex] : "Home"}'),
+        title: const Text(
+          'HimiloGuul',
+          textAlign: TextAlign.center,
+        ),
+        centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
@@ -59,15 +106,14 @@ class _AdminLayoutState extends State<AdminLayout> {
                 color: AppColors.primaryBlue,
               ),
             ),
-            ...drawerItems.map((item) => ListTile(
-              leading: const Icon(Icons.circle_outlined), 
-              title: Text(item),
+            ...drawerItems.map((menu) => ListTile(
+              leading: Icon(menu.icon), 
+              title: Text(menu.name),
               onTap: () {
-                // Handle drawer navigation
+                // Close drawer
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Navigating to $item')),
-                );
+                // Navigate to the corresponding screen based on menu path
+                _navigateToScreen(context, menu.path);
               },
             )),
           ],
@@ -80,7 +126,7 @@ class _AdminLayoutState extends State<AdminLayout> {
             const Icon(Icons.admin_panel_settings, size: 64, color: AppColors.primaryBlue),
             const SizedBox(height: 16),
             Text(
-              'Admin ${bottomNavItems.isNotEmpty ? bottomNavItems[_selectedIndex] : ""} Area',
+              'Admin ${_getOrderedBottomNavItems(bottomNavItems).isNotEmpty ? _getOrderedBottomNavItems(bottomNavItems)[_selectedIndex].name : ""} Area',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
              const SizedBox(height: 8),
@@ -98,23 +144,11 @@ class _AdminLayoutState extends State<AdminLayout> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        items: bottomNavItems.asMap().entries.map((entry) {
-          IconData icon;
-          // Dynamically map icons or use a helper
-          switch (entry.value) {
-            case 'Home': icon = Icons.home; break;
-            case 'Business': icon = Icons.business; break;
-            case 'Deals': icon = Icons.local_offer; break;
-            case 'Profile': icon = Icons.person; break;
-            case 'Dashboard': icon = Icons.dashboard; break;
-            case 'Users': icon = Icons.people; break;
-            case 'Businesses': icon = Icons.store; break;
-            case 'Settings': icon = Icons.settings; break;
-            default: icon = Icons.circle;
-          }
+        items: _getOrderedBottomNavItems(bottomNavItems).map((menu) {
           return BottomNavigationBarItem(
-            icon: Icon(icon),
-            label: entry.value,
+            icon: Icon(menu.icon, color: Colors.grey),
+            activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
+            label: menu.name,
           );
         }).toList(),
       ),

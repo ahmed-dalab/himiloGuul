@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/models/user_model.dart';
+import '../../core/models/menu_model.dart';
 import '../../core/services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
   User? _currentUser;
   String? _token;
-  List<String> _menuItems = [];
+  List<AppMenu> _allMenus = [];
   bool _isLoadingMenus = false;
+
+  // Bottom navigation menus (only these 4 paths)
+  static const List<String> _bottomNavPaths = ['/', '/business', '/deals', '/profile'];
 
   AuthProvider({AuthService? authService}) 
       : _authService = authService ?? AuthService();
@@ -15,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
   User? get currentUser => _currentUser;
   String? get token => _token;
   bool get isAuthenticated => _currentUser != null;
-  List<String> get menuItems => _menuItems;
+  List<AppMenu> get allMenus => _allMenus;
   bool get isLoadingMenus => _isLoadingMenus;
 
   // Login
@@ -69,7 +73,7 @@ class AuthProvider extends ChangeNotifier {
   void logout() {
     _currentUser = null;
     _token = null;
-    _menuItems = [];
+    _allMenus = [];
     notifyListeners();
   }
 
@@ -81,44 +85,61 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       // Try fetching from backend
-      final fetchedMenus = await _authService.fetchMenus(_token!);
+      final fetchedMenus = await _authService.fetchMenus(token: _token!);
       
       if (fetchedMenus.isNotEmpty) {
-        _menuItems = fetchedMenus;
+        // Convert to AppMenu objects
+        _allMenus = fetchedMenus
+            .map((menu) => AppMenu.fromJson(menu))
+            .toList();
       } else {
-        // Fallback logic
-        _menuItems = _getFallbackMenus(_currentUser!.role);
+        // Fallback logic - create menus from fallback list
+        _allMenus = _getFallbackMenus(_currentUser!.role);
       }
     } catch (e) {
       // Fallback on error
-      _menuItems = _getFallbackMenus(_currentUser!.role);
+      _allMenus = _getFallbackMenus(_currentUser!.role);
     } finally {
       _isLoadingMenus = false;
       notifyListeners();
     }
   }
   
-  List<String> _getFallbackMenus(UserRole role) {
+  List<AppMenu> _getFallbackMenus(UserRole role) {
     if (role == UserRole.admin) {
       return [
-        'Home',
-        'Business',
-        'Deals',
-        'Profile',
-        'Settings', // Drawer start
-        'Menus',
-        'Permissions',
-        'Roles',
+        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
+        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business),
+        AppMenu(id: '3', name: 'Deals', path: '/deals', icon: Icons.local_offer),
+        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
+        AppMenu(id: '5', name: 'Users', path: '/admin/users', icon: Icons.people),
+        AppMenu(id: '6', name: 'Roles', path: '/admin/roles', icon: Icons.admin_panel_settings),
+        AppMenu(id: '7', name: 'Menus', path: '/admin/menus', icon: Icons.menu),
+        AppMenu(id: '8', name: 'Permissions', path: '/admin/permissions', icon: Icons.lock),
+        AppMenu(id: '9', name: 'Settings', path: '/admin/settings', icon: Icons.settings),
       ];
     } else if (role == UserRole.seller) {
-      return ['Dashboard', 'My Shops', 'Orders', 'Profile'];
+      return [
+        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
+        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business),
+        AppMenu(id: '3', name: 'Deals', path: '/deals', icon: Icons.local_offer),
+        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
+      ];
     }
     return [];
   }
   
-  // Helper to get bottom nav items (first 4)
-  List<String> get bottomNavItems => _menuItems.take(4).toList();
+  // Get bottom navigation items (only Home, Business, Deals, Profile)
+  List<AppMenu> get bottomNavItems {
+    return _allMenus
+        .where((menu) => _bottomNavPaths.contains(menu.path))
+        .toList();
+  }
   
-  // Helper to get drawer items (after 4)
-  List<String> get drawerItems => _menuItems.skip(4).toList();
+  // Get drawer items (all other menus)
+  List<AppMenu> get drawerItems {
+    return _allMenus
+        .where((menu) => !_bottomNavPaths.contains(menu.path))
+        .toList();
+  }
 }

@@ -25,4 +25,8 @@ class AppRoutes {
   static const String adminDashboard = '/admin/dashboard';
   static const String pendingBusinesses = '/admin/pending-businesses';
   static const String userManagement = '/admin/users';
+  static const String rolesManagement = '/admin/roles';
+  static const String menusManagement = '/admin/menus';
+  static const String permissionsManagement = '/admin/permissions';
+  static const String settings = '/admin/settings';
 }

@@ -9,12 +9,22 @@ JWT_SECRET=your_secret_key_here
 PORT=5000
 ```
 
-2. **Start the Server**:
+2. **Seed roles** (first time only; creates admin, user, buyer, seller if missing):
+```bash
+npm run seed:roles
+```
+
+3. **Start the Server**:
 ```bash
 npm run dev
 ```
 
-The server will run on `http://localhost:5000` (or your configured PORT)
+The server will run on `http://localhost:5000` (or your configured PORT).
+
+4. **Run API integration tests** (optional):
+```bash
+npm run test:api
+```
 
 ---
 
@@ -24,7 +34,7 @@ The server will run on `http://localhost:5000` (or your configured PORT)
 
 #### Step 1: Register a User
 - **Method**: `POST`
-- **URL**: `http://localhost:5000/api/users/register`
+- **URL**: `http://localhost:5000/api/auth/register`
 - **Headers**: `Content-Type: application/json`
 - **Body** (raw JSON):
 ```json
@@ -40,7 +50,7 @@ The server will run on `http://localhost:5000` (or your configured PORT)
 
 #### Step 2: Login
 - **Method**: `POST`
-- **URL**: `http://localhost:5000/api/users/login`
+- **URL**: `http://localhost:5000/api/auth/login`
 - **Headers**: `Content-Type: application/json`
 - **Body** (raw JSON):
 ```json
@@ -119,7 +129,7 @@ The server will run on `http://localhost:5000` (or your configured PORT)
 
 #### Register User
 ```bash
-curl -X POST http://localhost:5000/api/users/register \
+curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -131,7 +141,7 @@ curl -X POST http://localhost:5000/api/users/register \
 
 #### Login
 ```bash
-curl -X POST http://localhost:5000/api/users/login \
+curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -182,7 +192,9 @@ Create a file `test-endpoints.js`:
 ```javascript
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000/api/users';
+const API = 'http://localhost:5000/api';
+const AUTH_URL = `${API}/auth`;
+const USERS_URL = `${API}/users`;
 
 let token = '';
 let userId = '';
@@ -191,7 +203,7 @@ async function testEndpoints() {
   try {
     // 1. Register
     console.log('1. Registering user...');
-    const registerRes = await axios.post(`${BASE_URL}/register`, {
+    const registerRes = await axios.post(`${AUTH_URL}/register`, {
       name: 'Test User',
       email: 'test@example.com',
       password: 'password123',
@@ -203,7 +215,7 @@ async function testEndpoints() {
 
     // 2. Login
     console.log('\n2. Logging in...');
-    const loginRes = await axios.post(`${BASE_URL}/login`, {
+    const loginRes = await axios.post(`${AUTH_URL}/login`, {
       email: 'test@example.com',
       password: 'password123'
     });
@@ -212,14 +224,14 @@ async function testEndpoints() {
 
     // 3. Get Profile
     console.log('\n3. Getting profile...');
-    const profileRes = await axios.get(`${BASE_URL}/profile`, {
+    const profileRes = await axios.get(`${USERS_URL}/profile`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     console.log('Profile Response:', profileRes.data);
 
     // 4. Update Profile
     console.log('\n4. Updating profile...');
-    const updateRes = await axios.put(`${BASE_URL}/profile`, {
+    const updateRes = await axios.put(`${USERS_URL}/profile`, {
       name: 'Updated Name',
       phone: '+1234567890',
       location: 'New York'
@@ -230,12 +242,12 @@ async function testEndpoints() {
 
     // 5. Get User by ID
     console.log('\n5. Getting user by ID...');
-    const userRes = await axios.get(`${BASE_URL}/${userId}`);
+    const userRes = await axios.get(`${USERS_URL}/${userId}`);
     console.log('User Response:', userRes.data);
 
     // 6. Update User by ID
     console.log('\n6. Updating user by ID...');
-    const updateByIdRes = await axios.put(`${BASE_URL}/${userId}`, {
+    const updateByIdRes = await axios.put(`${USERS_URL}/${userId}`, {
       name: 'Final Name',
       phone: '+9876543210'
     }, {
