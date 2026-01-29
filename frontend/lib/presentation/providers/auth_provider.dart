@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import '../../core/models/user_model.dart';
 import '../../core/models/menu_model.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/auth_storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
+  final AuthStorageService _storage = AuthStorageService();
   User? _currentUser;
   String? _token;
   List<AppMenu> _allMenus = [];
   bool _isLoadingMenus = false;
+  Future<void>? _restoreFuture;
 
   // Bottom navigation menus (only these 4 paths)
   static const List<String> _bottomNavPaths = ['/', '/business', '/deals', '/profile'];
@@ -58,6 +61,15 @@ class AuthProvider extends ChangeNotifier {
         role: role,
       );
 
+      // Persist auth for session restore
+      await _storage.saveToken(_token!);
+      await _storage.saveUser({
+        'id': _currentUser!.id,
+        'name': _currentUser!.name,
+        'email': _currentUser!.email,
+        'role': role.name,
+      });
+
       // Load Menus if Admin or Seller
       if (role == UserRole.admin || role == UserRole.seller) {
         await _loadMenus();
@@ -74,7 +86,45 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = null;
     _token = null;
     _allMenus = [];
+    _storage.clear();
     notifyListeners();
+  }
+
+  /// Restore session from storage. Call once at app start; safe to await multiple times.
+  Future<void> ensureRestored() async {
+    _restoreFuture ??= _doRestore();
+    await _restoreFuture;
+  }
+
+  Future<void> _doRestore() async {
+    try {
+      final token = await _storage.getToken();
+      final userMap = await _storage.getUser();
+      if (token == null || userMap == null) return;
+
+      _token = token;
+      final roleStr = (userMap['role'] as String?)?.toLowerCase();
+      UserRole role = UserRole.buyer;
+      if (roleStr == 'admin') {
+        role = UserRole.admin;
+      } else if (roleStr == 'seller') {
+        role = UserRole.seller;
+      }
+
+      _currentUser = User(
+        id: userMap['id'] as String? ?? '',
+        name: userMap['name'] as String? ?? '',
+        email: userMap['email'] as String? ?? '',
+        role: role,
+      );
+
+      if (role == UserRole.admin || role == UserRole.seller) {
+        await _loadMenus();
+      }
+      notifyListeners();
+    } catch (_) {
+      await _storage.clear();
+    }
   }
 
   Future<void> _loadMenus() async {

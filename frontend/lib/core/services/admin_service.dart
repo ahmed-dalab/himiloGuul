@@ -11,6 +11,47 @@ class AdminService {
     return Options(headers: {'Authorization': 'Bearer $token'});
   }
 
+  // Dashboard (admin only)
+  Future<Map<String, dynamic>> getDashboard(String token) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}${ApiConstants.adminDashboard}',
+        options: _getAuthOptions(token),
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Failed to load dashboard: ${response.statusMessage}');
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data['message'] ?? 'Failed to load dashboard');
+      }
+      throw Exception('Network error: ${e.message}');
+    }
+  }
+
+  // Recent activity (admin only)
+  Future<Map<String, dynamic>> getRecentActivity(String token, {int? limit}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (limit != null) queryParams['limit'] = limit;
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}${ApiConstants.adminActivities}',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        options: _getAuthOptions(token),
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Failed to load activity: ${response.statusMessage}');
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data['message'] ?? 'Failed to load activity');
+      }
+      throw Exception('Network error: ${e.message}');
+    }
+  }
+
   // Business Management
 
   // GET /api/admin/businesses - List all businesses (admin only)

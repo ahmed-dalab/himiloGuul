@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/models/user_model.dart';
+import '../providers/auth_provider.dart';
 import 'app_routes.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../screens/business/browse_business_screen.dart';
@@ -12,11 +15,38 @@ import '../screens/admin/roles_screen.dart';
 import '../screens/admin/menus_screen.dart';
 import '../screens/admin/permissions_screen.dart';
 import '../screens/admin/settings_screen.dart';
+import '../screens/admin/admin_business_detail_screen.dart';
 
 class AppRouter {
-  static final router = GoRouter(
-    initialLocation: AppRoutes.welcome,
-    routes: [
+  static GoRouter createRouter(AuthProvider authProvider) {
+    return GoRouter(
+      initialLocation: AppRoutes.welcome,
+      refreshListenable: authProvider,
+      redirect: (BuildContext context, GoRouterState state) async {
+        await authProvider.ensureRestored();
+        final path = state.uri.path;
+        final isAuth = authProvider.isAuthenticated;
+        final user = authProvider.currentUser;
+
+        // Logged in: redirect away from auth/welcome to role-based layout
+        if (isAuth && user != null) {
+          if (path == AppRoutes.welcome ||
+              path == AppRoutes.login ||
+              path == AppRoutes.register) {
+            if (user.role == UserRole.admin) return '/admin';
+            if (user.role == UserRole.seller) return '/seller';
+            return AppRoutes.browseBusiness;
+          }
+        }
+
+        // Not logged in: redirect away from protected layouts
+        if (!isAuth && (path.startsWith('/admin') || path.startsWith('/seller'))) {
+          return AppRoutes.welcome;
+        }
+
+        return null;
+      },
+      routes: [
       GoRoute(
         path: AppRoutes.welcome,
         builder: (context, state) => const WelcomeScreen(),
@@ -62,6 +92,13 @@ class AppRouter {
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
       ),
+      GoRoute(
+        path: '/admin/business/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return AdminBusinessDetailScreen(businessId: id);
+        },
+      ),
       // Add other routes here as they are implemented
       GoRoute(
         path: '${AppRoutes.businessDetail}/:id',
@@ -71,5 +108,6 @@ class AppRouter {
         },
       ),
     ],
-  );
+    );
+  }
 }

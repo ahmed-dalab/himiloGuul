@@ -20,13 +20,13 @@ class AppMenu {
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
       path: json['path'] ?? '',
-      icon: _getIconForPath(json['path'] ?? ''),
+      icon: getIconForPath(json['path'] ?? ''),
       parentId: json['parentId']?.toString(),
     );
   }
 
-  // Map paths to Flutter icons
-  static IconData _getIconForPath(String path) {
+  // Map paths to Flutter icons (public for use in menus screen)
+  static IconData getIconForPath(String path) {
     switch (path.toLowerCase()) {
       case '/':
       case '/home':

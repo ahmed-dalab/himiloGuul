@@ -9,6 +9,8 @@ const {
   deleteUser,
   listAllContacts,
   deleteContact,
+  getDashboardStats,
+  getRecentActivity,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
@@ -17,6 +19,10 @@ const router = Router();
 // All admin routes require authentication and admin role
 router.use(protect);
 router.use(authorize("admin"));
+
+// Dashboard (admin only)
+router.get("/dashboard", getDashboardStats);
+router.get("/activities", getRecentActivity);
 
 // Business management routes
 router.get("/businesses", listAllBusinesses);

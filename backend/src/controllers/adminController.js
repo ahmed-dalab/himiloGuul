@@ -1,6 +1,7 @@
 const Business = require("../models/Business");
 const User = require("../models/User");
 const Contact = require("../models/Contact");
+const Activity = require("../models/Activity");
 
 // List all businesses (admin only)
 const listAllBusinesses = async (req, res) => {
@@ -431,6 +432,54 @@ const listAllContacts = async (req, res) => {
   }
 };
 
+// Dashboard stats (admin only): total users, total active businesses, deals closed
+const getDashboardStats = async (req, res) => {
+  try {
+    const [totalUsers, totalActiveBusinesses, dealsClosed] = await Promise.all([
+      User.countDocuments(),
+      Business.countDocuments({ status: "approved" }),
+      Business.countDocuments({ isSold: true }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalActiveBusinesses,
+        dealsClosed,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Recent activity (admin only)
+const getRecentActivity = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const activities = await Activity.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: activities,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 // Delete contact (admin only)
 const deleteContact = async (req, res) => {
   try {
@@ -476,5 +525,7 @@ module.exports = {
   deleteUser,
   listAllContacts,
   deleteContact,
+  getDashboardStats,
+  getRecentActivity,
 };
 

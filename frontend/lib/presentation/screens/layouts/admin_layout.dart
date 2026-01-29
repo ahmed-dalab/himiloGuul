@@ -5,6 +5,10 @@ import '../../providers/auth_provider.dart';
 import '../../../config/app_colors.dart';
 import '../../../core/models/menu_model.dart';
 import '../../routes/app_routes.dart';
+import '../admin/admin_dashboard_screen.dart';
+import '../admin/admin_business_screen.dart';
+import '../admin/admin_deals_screen.dart';
+import '../admin/admin_profile_screen.dart';
 
 class AdminLayout extends StatefulWidget {
   const AdminLayout({super.key});
@@ -119,21 +123,13 @@ class _AdminLayoutState extends State<AdminLayout> {
           ],
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.admin_panel_settings, size: 64, color: AppColors.primaryBlue),
-            const SizedBox(height: 16),
-            Text(
-              'Admin ${_getOrderedBottomNavItems(bottomNavItems).isNotEmpty ? _getOrderedBottomNavItems(bottomNavItems)[_selectedIndex].name : ""} Area',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-             const SizedBox(height: 8),
-            const Text('Manage your application here.'),
-          ],
-        ),
-      ),
+      body: _selectedIndex == 0
+          ? const AdminDashboardScreen()
+          : _selectedIndex == 1
+              ? const AdminBusinessScreen()
+              : _selectedIndex == 2
+                  ? const AdminDealsScreen()
+                  : const AdminProfileScreen(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {

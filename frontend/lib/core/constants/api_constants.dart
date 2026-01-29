@@ -19,6 +19,8 @@ class ApiConstants {
   
   // Admin endpoints
   static const String admin = '/admin';
+  static const String adminDashboard = '$admin/dashboard';
+  static const String adminActivities = '$admin/activities';
   static const String adminBusinesses = '$admin/businesses';
   static const String adminPendingBusinesses = '$adminBusinesses/pending';
   static const String adminUsers = '$admin/users';

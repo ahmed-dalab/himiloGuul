@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -8,6 +9,13 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leadingWidth: 56,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: AppColors.darkGray,
+          onPressed: () => context.go('/admin'),
+        ),
         title: const Text('Settings'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,

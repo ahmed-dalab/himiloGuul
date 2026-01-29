@@ -107,16 +107,13 @@ class MenuService {
     String? name,
     String? path,
     String? parentId,
+    bool includeParentId = false,
   }) async {
     try {
       final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (path != null) data['path'] = path;
-      if (parentId != null) {
-        data['parentId'] = parentId;
-      } else if (parentId == null && data.containsKey('parentId')) {
-        data['parentId'] = null;
-      }
+      if (includeParentId) data['parentId'] = parentId;
 
       final response = await _dio.put(
         '${ApiConstants.baseUrl}${ApiConstants.menus}/$id',
