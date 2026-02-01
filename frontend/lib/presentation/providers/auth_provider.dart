@@ -186,10 +186,19 @@ class AuthProvider extends ChangeNotifier {
         .toList();
   }
   
-  // Get drawer items (all other menus)
+  // Get drawer items (all other menus), deduplicated so we don't show
+  // both "Users" (/admin/users) and a stray "users" (e.g. path "users") from the API
   List<AppMenu> get drawerItems {
-    return _allMenus
+    final items = _allMenus
         .where((menu) => !_bottomNavPaths.contains(menu.path))
         .toList();
+    final hasAdminUsers = items.any((m) => m.path == '/admin/users');
+    if (hasAdminUsers) {
+      return items.where((m) {
+        final p = m.path.toLowerCase().replaceFirst(RegExp(r'^/'), '');
+        return p != 'users' && p != 'user';
+      }).toList();
+    }
+    return items;
   }
 }

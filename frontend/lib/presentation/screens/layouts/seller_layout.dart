@@ -32,13 +32,25 @@ class _SellerLayoutState extends State<SellerLayout> {
     return ordered;
   }
 
+  // BottomNavigationBar requires at least 2 items. When menus are cleared (e.g. on logout),
+  // use a fallback so we don't crash before the router redirects.
+  List<AppMenu> _getEffectiveBottomNavItems(List<AppMenu> items) {
+    final ordered = _getOrderedBottomNavItems(items);
+    if (ordered.length >= 2) return ordered;
+    return [
+      AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
+      AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final bottomNavItems = authProvider.bottomNavItems;
-    
-     if (_selectedIndex >= bottomNavItems.length) {
-       _selectedIndex = 0;
+    final effectiveItems = _getEffectiveBottomNavItems(bottomNavItems);
+
+    if (_selectedIndex >= effectiveItems.length) {
+      _selectedIndex = 0;
     }
 
     return Scaffold(
@@ -68,7 +80,7 @@ class _SellerLayoutState extends State<SellerLayout> {
             const Icon(Icons.storefront, size: 64, color: AppColors.primaryBlue),
             const SizedBox(height: 16),
             Text(
-              'Seller ${_getOrderedBottomNavItems(bottomNavItems).isNotEmpty ? _getOrderedBottomNavItems(bottomNavItems)[_selectedIndex].name : ""} Area',
+              'Seller ${effectiveItems.isNotEmpty ? effectiveItems[_selectedIndex].name : ""} Area',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
              const SizedBox(height: 8),
@@ -77,7 +89,7 @@ class _SellerLayoutState extends State<SellerLayout> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: _selectedIndex.clamp(0, effectiveItems.length - 1),
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
@@ -86,7 +98,7 @@ class _SellerLayoutState extends State<SellerLayout> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        items: _getOrderedBottomNavItems(bottomNavItems).map((menu) {
+        items: effectiveItems.map((menu) {
           return BottomNavigationBarItem(
             icon: Icon(menu.icon, color: Colors.grey),
             activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),

@@ -26,12 +26,18 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get user profile');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to get user profile'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Error getting user profile: $e');
     }
+  }
+
+  static String _errorMessage(dynamic data, String fallback) {
+    if (data is! Map) return fallback;
+    final msg = data['message'] ?? data['error'];
+    return msg is String ? msg : fallback;
   }
 
   // PUT /api/users/profile - Update own profile
@@ -62,7 +68,7 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to update profile');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to update profile'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -85,7 +91,7 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get user');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to get user'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -128,7 +134,7 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to update user');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to update user'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -149,7 +155,7 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to delete user');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to delete user'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -191,7 +197,7 @@ class UserService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get users');
+        throw Exception(_errorMessage(e.response!.data, 'Failed to get users'));
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {

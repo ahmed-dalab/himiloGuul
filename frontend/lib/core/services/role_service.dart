@@ -30,7 +30,9 @@ class RoleService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to create role');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to create role') : 'Failed to create role';
+        throw Exception(msg is String ? msg : 'Failed to create role');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -53,7 +55,9 @@ class RoleService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get roles');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to get roles') : 'Failed to get roles';
+        throw Exception(msg is String ? msg : 'Failed to get roles');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -76,7 +80,9 @@ class RoleService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get role');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to get role') : 'Failed to get role';
+        throw Exception(msg is String ? msg : 'Failed to get role');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -104,7 +110,9 @@ class RoleService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to update role');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to update role') : 'Failed to update role';
+        throw Exception(msg is String ? msg : 'Failed to update role');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -125,7 +133,9 @@ class RoleService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to delete role');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to delete role') : 'Failed to delete role';
+        throw Exception(msg is String ? msg : 'Failed to delete role');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {

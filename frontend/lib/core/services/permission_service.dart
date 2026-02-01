@@ -34,7 +34,9 @@ class PermissionService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to create permission');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to create permission') : 'Failed to create permission';
+        throw Exception(msg is String ? msg : 'Failed to create permission');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -68,7 +70,9 @@ class PermissionService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get permissions');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to get permissions') : 'Failed to get permissions';
+        throw Exception(msg is String ? msg : 'Failed to get permissions');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -91,7 +95,9 @@ class PermissionService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to get permission');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to get permission') : 'Failed to get permission';
+        throw Exception(msg is String ? msg : 'Failed to get permission');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -124,7 +130,9 @@ class PermissionService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to update permission');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to update permission') : 'Failed to update permission';
+        throw Exception(msg is String ? msg : 'Failed to update permission');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -145,7 +153,9 @@ class PermissionService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to delete permission');
+        final data = e.response!.data;
+        final msg = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to delete permission') : 'Failed to delete permission';
+        throw Exception(msg is String ? msg : 'Failed to delete permission');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {

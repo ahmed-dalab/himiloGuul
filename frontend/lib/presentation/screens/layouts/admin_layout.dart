@@ -36,6 +36,17 @@ class _AdminLayoutState extends State<AdminLayout> {
     return ordered;
   }
 
+  // BottomNavigationBar requires at least 2 items. When menus are cleared (e.g. on logout),
+  // use a fallback so we don't crash before the router redirects.
+  List<AppMenu> _getEffectiveBottomNavItems(List<AppMenu> items) {
+    final ordered = _getOrderedBottomNavItems(items);
+    if (ordered.length >= 2) return ordered;
+    return [
+      AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
+      AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
+    ];
+  }
+
   // Navigate to screen based on menu path
   void _navigateToScreen(BuildContext context, String path) {
     switch (path) {
@@ -65,14 +76,15 @@ class _AdminLayoutState extends State<AdminLayout> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    
+
     // items from provider
     final bottomNavItems = authProvider.bottomNavItems;
+    final effectiveBottomItems = _getEffectiveBottomNavItems(bottomNavItems);
     final drawerItems = authProvider.drawerItems;
-    
+
     // Safety check for index
-    if (_selectedIndex >= bottomNavItems.length) {
-       _selectedIndex = 0;
+    if (_selectedIndex >= effectiveBottomItems.length) {
+      _selectedIndex = 0;
     }
 
     return Scaffold(
@@ -131,7 +143,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                   ? const AdminDealsScreen()
                   : const AdminProfileScreen(),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: _selectedIndex.clamp(0, effectiveBottomItems.length - 1),
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
@@ -140,7 +152,7 @@ class _AdminLayoutState extends State<AdminLayout> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        items: _getOrderedBottomNavItems(bottomNavItems).map((menu) {
+        items: effectiveBottomItems.map((menu) {
           return BottomNavigationBarItem(
             icon: Icon(menu.icon, color: Colors.grey),
             activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
