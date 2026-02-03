@@ -17,6 +17,9 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
   
+  // Users routes
+  static const String users = '/users';
+  
   // Contact routes
   static const String contacts = '/contacts';
   static const String conversation = '/conversation';
@@ -24,7 +27,6 @@ class AppRoutes {
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';
   static const String pendingBusinesses = '/admin/pending-businesses';
-  static const String userManagement = '/admin/users';
   static const String rolesManagement = '/admin/roles';
   static const String menusManagement = '/admin/menus';
   static const String permissionsManagement = '/admin/permissions';

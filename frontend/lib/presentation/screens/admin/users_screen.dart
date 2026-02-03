@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../config/app_colors.dart';
 import '../../../core/services/role_service.dart';
@@ -152,17 +151,11 @@ class _UsersScreenState extends State<UsersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leadingWidth: 56,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppColors.darkGray,
-          onPressed: () => context.go('/admin'),
-        ),
-        title: const Text('Users Management'),
+        title: const Text('Users'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))

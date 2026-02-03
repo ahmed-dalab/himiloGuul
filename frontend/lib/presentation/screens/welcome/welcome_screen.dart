@@ -12,111 +12,117 @@ class WelcomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header Graphic Section
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.35,
+        child: Column(
+          children: [
+            // Header Graphic Section - Takes ~30% of space
+            Expanded(
+              flex: 30,
+              child: SizedBox(
+                width: double.infinity,
                 child: CustomPaint(
                   painter: AbstractHeaderPainter(),
-                  child: Container(),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
-
-              // Welcome Message Section
-              Padding(
+            // Content Section - Takes ~70% of space
+            Expanded(
+              flex: 70,
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   children: [
-                    const Text(
-                      'Welcome to HimiloGuul',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkGray,
-                      ),
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 16),
+                    // Welcome Message Section
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Welcome to HimiloGuul',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.darkGray,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Find your next business venture or connect with\npotential buyers.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.lightGray,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Find your next business venture or connect with\npotential buyers.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.lightGray,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
+
+                    const SizedBox(height: 16),
+
+                    // Feature Sections
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildFeatureSection(
+                          title: 'Verified Listings',
+                          description:
+                              'Browse businesses that have been\nvetted for authenticity.',
+                          illustration: const FeatureIllustration(type: 0),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFeatureSection(
+                          title: 'Direct Messaging',
+                          description:
+                              'Communicate directly with buyers\nand sellers within the app.',
+                          illustration: const FeatureIllustration(type: 1),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFeatureSection(
+                          title: 'Secure Deals',
+                          description:
+                              'Ensure secure transactions and\nagreements through our platform.',
+                          illustration: const FeatureIllustration(type: 2),
+                        ),
+                      ],
                     ),
+
+                    const Spacer(),
+
+                    // Get Started Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Navigate to browse business screen
+                          context.push('/browse-business');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Get Started',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 40),
-
-              // Feature Sections
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    _buildFeatureSection(
-                      title: 'Verified Listings',
-                      description: 'Browse businesses that have been\nvetted for authenticity.',
-                      illustration: const FeatureIllustration(type: 0),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildFeatureSection(
-                      title: 'Direct Messaging',
-                      description: 'Communicate directly with buyers\nand sellers within the app.',
-                      illustration: const FeatureIllustration(type: 1),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildFeatureSection(
-                      title: 'Secure Deals',
-                      description: 'Ensure secure transactions and\nagreements through our platform.',
-                      illustration: const FeatureIllustration(type: 2),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Get Started Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Navigate to browse business screen
-                      context.push('/browse-business');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Get Started',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -6,6 +6,7 @@ class AppMenu {
   final String path;
   final IconData icon;
   final String? parentId;
+  final int order;
 
   AppMenu({
     required this.id,
@@ -13,6 +14,7 @@ class AppMenu {
     required this.path,
     required this.icon,
     this.parentId,
+    this.order = 999,
   });
 
   factory AppMenu.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class AppMenu {
       path: json['path'] ?? '',
       icon: getIconForPath(json['path'] ?? ''),
       parentId: json['parentId']?.toString(),
+      order: json['order'] ?? 999,
     );
   }
 
@@ -33,8 +36,8 @@ class AppMenu {
         return Icons.home;
       case '/business':
         return Icons.business;
-      case '/deals':
-        return Icons.local_offer;
+      case '/users':
+        return Icons.people;
       case '/profile':
         return Icons.person;
       case '/admin/users':
@@ -59,12 +62,10 @@ class AppMenu {
         return Icons.home;
       case 'business':
         return Icons.business;
-      case 'deals':
-        return Icons.local_offer;
-      case 'profile':
-        return Icons.person;
       case 'users':
         return Icons.people;
+      case 'profile':
+        return Icons.person;
       case 'roles':
         return Icons.admin_panel_settings;
       case 'menus':

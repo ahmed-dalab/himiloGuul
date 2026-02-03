@@ -14,7 +14,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void>? _restoreFuture;
 
   // Bottom navigation menus (only these 4 paths)
-  static const List<String> _bottomNavPaths = ['/', '/business', '/deals', '/profile'];
+  static const List<String> _bottomNavPaths = ['/', '/business', '/users', '/profile'];
 
   AuthProvider({AuthService? authService}) 
       : _authService = authService ?? AuthService();
@@ -142,6 +142,9 @@ class AuthProvider extends ChangeNotifier {
         _allMenus = fetchedMenus
             .map((menu) => AppMenu.fromJson(menu))
             .toList();
+            
+        // Sort by order
+        _allMenus.sort((a, b) => a.order.compareTo(b.order));
       } else {
         // Fallback logic - create menus from fallback list
         _allMenus = _getFallbackMenus(_currentUser!.role);
@@ -158,28 +161,27 @@ class AuthProvider extends ChangeNotifier {
   List<AppMenu> _getFallbackMenus(UserRole role) {
     if (role == UserRole.admin) {
       return [
-        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
-        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business),
-        AppMenu(id: '3', name: 'Deals', path: '/deals', icon: Icons.local_offer),
-        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
-        AppMenu(id: '5', name: 'Users', path: '/admin/users', icon: Icons.people),
-        AppMenu(id: '6', name: 'Roles', path: '/admin/roles', icon: Icons.admin_panel_settings),
-        AppMenu(id: '7', name: 'Menus', path: '/admin/menus', icon: Icons.menu),
-        AppMenu(id: '8', name: 'Permissions', path: '/admin/permissions', icon: Icons.lock),
-        AppMenu(id: '9', name: 'Settings', path: '/admin/settings', icon: Icons.settings),
+        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home, order: 10),
+        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business, order: 20),
+        AppMenu(id: '3', name: 'Users', path: '/users', icon: Icons.people, order: 30),
+        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person, order: 40),
+        AppMenu(id: '5', name: 'Roles', path: '/admin/roles', icon: Icons.admin_panel_settings, order: 50),
+        AppMenu(id: '6', name: 'Menus', path: '/admin/menus', icon: Icons.menu, order: 60),
+        AppMenu(id: '7', name: 'Permissions', path: '/admin/permissions', icon: Icons.lock, order: 70),
+        AppMenu(id: '8', name: 'Settings', path: '/admin/settings', icon: Icons.settings, order: 80),
       ];
     } else if (role == UserRole.seller) {
       return [
-        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
-        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business),
-        AppMenu(id: '3', name: 'Deals', path: '/deals', icon: Icons.local_offer),
-        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
+        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home, order: 10),
+        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business, order: 20),
+        AppMenu(id: '3', name: 'Users', path: '/users', icon: Icons.people, order: 30),
+        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person, order: 40),
       ];
     }
     return [];
   }
   
-  // Get bottom navigation items (only Home, Business, Deals, Profile)
+  // Get bottom navigation items (only Home, Business, Users, Profile)
   List<AppMenu> get bottomNavItems {
     return _allMenus
         .where((menu) => _bottomNavPaths.contains(menu.path))
@@ -192,13 +194,12 @@ class AuthProvider extends ChangeNotifier {
     final items = _allMenus
         .where((menu) => !_bottomNavPaths.contains(menu.path))
         .toList();
-    final hasAdminUsers = items.any((m) => m.path == '/admin/users');
-    if (hasAdminUsers) {
-      return items.where((m) {
-        final p = m.path.toLowerCase().replaceFirst(RegExp(r'^/'), '');
-        return p != 'users' && p != 'user';
-      }).toList();
-    }
-    return items;
+    
+    // Explicitly filter out any users-related menu items from drawer
+    return items.where((m) {
+      final path = m.path.toLowerCase();
+      final name = m.name.toLowerCase();
+      return !path.contains('user') && !name.contains('user');
+    }).toList();
   }
 }

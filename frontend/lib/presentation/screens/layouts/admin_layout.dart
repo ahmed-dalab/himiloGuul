@@ -7,7 +7,7 @@ import '../../../core/models/menu_model.dart';
 import '../../routes/app_routes.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../admin/admin_business_screen.dart';
-import '../admin/admin_deals_screen.dart';
+import '../admin/users_screen.dart';
 import '../admin/admin_profile_screen.dart';
 
 class AdminLayout extends StatefulWidget {
@@ -20,9 +20,9 @@ class AdminLayout extends StatefulWidget {
 class _AdminLayoutState extends State<AdminLayout> {
   int _selectedIndex = 0;
 
-  // Order bottom nav items: Home, Business, Deals, Profile
+  // Order bottom nav items: Home, Business, Users, Profile
   List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
-    const order = ['/', '/business', '/deals', '/profile'];
+    const order = ['/', '/business', '/users', '/profile'];
     final ordered = <AppMenu>[];
     for (final path in order) {
       try {
@@ -50,9 +50,6 @@ class _AdminLayoutState extends State<AdminLayout> {
   // Navigate to screen based on menu path
   void _navigateToScreen(BuildContext context, String path) {
     switch (path) {
-      case '/admin/users':
-        context.go(AppRoutes.userManagement);
-        break;
       case '/admin/roles':
         context.go(AppRoutes.rolesManagement);
         break;
@@ -140,7 +137,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           : _selectedIndex == 1
               ? const AdminBusinessScreen()
               : _selectedIndex == 2
-                  ? const AdminDealsScreen()
+                  ? const UsersScreen()
                   : const AdminProfileScreen(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex.clamp(0, effectiveBottomItems.length - 1),

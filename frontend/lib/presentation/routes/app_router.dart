@@ -64,6 +64,10 @@ class AppRouter {
         builder: (context, state) => const BrowseBusinessScreen(),
       ),
       GoRoute(
+        path: AppRoutes.users,
+        builder: (context, state) => const UsersScreen(),
+      ),
+      GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminLayout(),
       ),
@@ -72,10 +76,6 @@ class AppRouter {
         builder: (context, state) => const SellerLayout(),
       ),
       // Admin management routes
-      GoRoute(
-        path: AppRoutes.userManagement,
-        builder: (context, state) => const UsersScreen(),
-      ),
       GoRoute(
         path: AppRoutes.rolesManagement,
         builder: (context, state) => const RolesScreen(),

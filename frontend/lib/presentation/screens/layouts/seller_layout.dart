@@ -16,9 +16,9 @@ class SellerLayout extends StatefulWidget {
 class _SellerLayoutState extends State<SellerLayout> {
   int _selectedIndex = 0;
 
-  // Order bottom nav items: Home, Business, Deals, Profile
+  // Order bottom nav items: Home, Business, Users, Profile
   List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
-    const order = ['/', '/business', '/deals', '/profile'];
+    const order = ['/', '/business', '/users', '/profile'];
     final ordered = <AppMenu>[];
     for (final path in order) {
       try {
