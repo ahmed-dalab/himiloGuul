@@ -8,16 +8,14 @@ const businessSchema = new mongoose.Schema(
     },
     address: {
       type: String,
-      required: true,
     },
     phone: {
       type: String,
-      required: true,
     },
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
     },
     website: {
       type: String,
@@ -45,6 +43,10 @@ const businessSchema = new mongoose.Schema(
       ],
     },
     askingPrice: {
+      type: Number,
+      min: 0,
+    },
+    annualRevenue: {
       type: Number,
       min: 0,
     },

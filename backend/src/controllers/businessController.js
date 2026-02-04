@@ -1,4 +1,5 @@
 const Business = require("../models/Business");
+const User = require("../models/User");
 
 // Browse businesses with filters, pagination, and sorting (public endpoint)
 const browseBusinesses = async (req, res) => {
@@ -209,24 +210,48 @@ const createBusiness = async (req, res) => {
       description,
       category,
       askingPrice,
+      annualRevenue,
       location,
+      owner: ownerId,
     } = req.body;
 
-    // Validate required fields
-    if (!name || !address || !phone || !email) {
+    // Validate required fields (name only required for multi-step form)
+    if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Name, address, phone, and email are required",
+        message: "Business name is required",
       });
     }
 
-    // Check if email already exists
-    const existingBusiness = await Business.findOne({ email });
-    if (existingBusiness) {
-      return res.status(409).json({
-        success: false,
-        message: "Business with this email already exists",
-      });
+    // Determine owner: admin can pass owner (seller userId); seller is always self
+    let owner = req.user._id;
+    if (req.user.role === "admin" && ownerId) {
+      const ownerUser = await User.findById(ownerId).populate("roleId", "name");
+      if (!ownerUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected owner user not found",
+        });
+      }
+      const roleName = ownerUser.roleId?.name;
+      if (roleName !== "seller") {
+        return res.status(400).json({
+          success: false,
+          message: "Selected user must have the seller role",
+        });
+      }
+      owner = ownerUser._id;
+    }
+
+    // Check email uniqueness only if email is provided
+    if (email && email.trim()) {
+      const existingBusiness = await Business.findOne({ email: email.trim() });
+      if (existingBusiness) {
+        return res.status(409).json({
+          success: false,
+          message: "Business with this email already exists",
+        });
+      }
     }
 
     // Handle image uploads if provided
@@ -236,21 +261,24 @@ const createBusiness = async (req, res) => {
       images = await uploadImages(req.files);
     }
 
-    // Create business
-    const business = await Business.create({
-      name,
-      address,
-      phone,
-      email,
-      website,
-      description,
-      category,
+    // Build business payload (address, phone, email optional)
+    const businessData = {
+      name: name.trim(),
+      address: address?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      email: email?.trim() || undefined,
+      website: website?.trim() || undefined,
+      description: description?.trim() || undefined,
+      category: category || undefined,
       askingPrice: askingPrice ? Number(askingPrice) : undefined,
-      location,
-      owner: req.user._id,
+      annualRevenue: annualRevenue ? Number(annualRevenue) : undefined,
+      location: location?.trim() || undefined,
+      owner,
       images,
-      status: "pending", // New businesses start as pending
-    });
+      status: "pending",
+    };
+
+    const business = await Business.create(businessData);
 
     // Populate owner info
     await business.populate("owner", "name email phone");
@@ -282,6 +310,7 @@ const updateBusiness = async (req, res) => {
       description,
       category,
       askingPrice,
+      annualRevenue,
       location,
     } = req.body;
 
@@ -332,6 +361,7 @@ const updateBusiness = async (req, res) => {
     if (description !== undefined) business.description = description;
     if (category) business.category = category;
     if (askingPrice !== undefined) business.askingPrice = Number(askingPrice);
+    if (annualRevenue !== undefined) business.annualRevenue = Number(annualRevenue);
     if (location !== undefined) business.location = location;
 
     // Add new images to existing ones

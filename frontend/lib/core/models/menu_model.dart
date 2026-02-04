@@ -20,9 +20,18 @@ class AppMenu {
   factory AppMenu.fromJson(Map<String, dynamic> json) {
     final path = json['path'] ?? '';
     final name = json['name'] ?? '';
-    final pathIcon = getIconForPath(path);
-    // Use name as fallback when path has no specific icon (e.g. custom paths)
-    final icon = pathIcon == Icons.circle ? getIconForName(name) : pathIcon;
+    final iconKey = json['icon'] as String?;
+    IconData icon;
+    if (iconKey != null && iconKey.isNotEmpty) {
+      icon = getIconFromKey(iconKey);
+      if (icon == Icons.circle) {
+        final pathIcon = getIconForPath(path);
+        icon = pathIcon == Icons.circle ? getIconForName(name) : pathIcon;
+      }
+    } else {
+      final pathIcon = getIconForPath(path);
+      icon = pathIcon == Icons.circle ? getIconForName(name) : pathIcon;
+    }
     return AppMenu(
       id: json['_id'] ?? json['id'] ?? '',
       name: name,
@@ -31,6 +40,35 @@ class AppMenu {
       parentId: json['parentId']?.toString(),
       order: json['order'] ?? 999,
     );
+  }
+
+  /// Map icon key (from create form) to Flutter icon.
+  static IconData getIconFromKey(String key) {
+    final k = key.toLowerCase().trim().replaceAll(' ', '_');
+    switch (k) {
+      case 'file':
+        return Icons.description;
+      case 'folder':
+        return Icons.folder;
+      case 'chart_line':
+      case 'chartline':
+        return Icons.show_chart;
+      case 'chart_bar':
+      case 'chartbar':
+        return Icons.bar_chart;
+      case 'list':
+        return Icons.list;
+      case 'grid_four':
+      case 'gridfour':
+        return Icons.grid_view;
+      case 'bell':
+        return Icons.notifications;
+      case 'gear':
+      case 'settings':
+        return Icons.settings;
+      default:
+        return Icons.circle;
+    }
   }
 
   /// Map path to Flutter icon for drawer and bottom navigation.

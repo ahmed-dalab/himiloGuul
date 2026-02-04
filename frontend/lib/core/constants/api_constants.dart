@@ -41,4 +41,7 @@ class ApiConstants {
   
   // Contact endpoints
   static const String contacts = '/contacts';
+
+  // Settings endpoints
+  static const String settings = '/settings';
 }

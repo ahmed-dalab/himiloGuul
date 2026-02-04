@@ -55,7 +55,10 @@ const getMenusForMe = async (req, res) => {
       });
     }
 
-    const menus = await Menu.find({ _id: { $in: menuIds } })
+    const menus = await Menu.find({
+      _id: { $in: menuIds },
+      isActive: { $ne: false },
+    })
       .populate("parentId", "name path")
       .sort({ createdAt: -1 });
 
@@ -89,10 +92,14 @@ const createMenu = async (req, res) => {
       }
     }
 
+    const isActive = req.body.isActive !== false;
+    const icon = req.body.icon || null;
     const menu = new Menu({
       name,
       path,
       parentId: parentId || null,
+      isActive,
+      icon: icon || undefined,
     });
 
     await menu.save();
@@ -168,7 +175,7 @@ const getMenuById = async (req, res) => {
 const updateMenu = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, path, parentId } = req.body;
+    const { name, path, parentId, isActive, icon } = req.body;
 
     const menu = await Menu.findById(id);
 
@@ -218,6 +225,12 @@ const updateMenu = async (req, res) => {
     }
     if (path !== undefined) {
       menu.path = path;
+    }
+    if (isActive !== undefined) {
+      menu.isActive = !!isActive;
+    }
+    if (icon !== undefined) {
+      menu.icon = icon || null;
     }
 
     await menu.save();

@@ -80,6 +80,31 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   static const List<String> _adminBottomNavNames = ['home', 'business', 'users', 'profile'];
 
+  static Future<void> _showLogoutConfirm(BuildContext context, AuthProvider authProvider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      authProvider.logout();
+      context.go(AppRoutes.welcome);
+    }
+  }
+
   List<AppMenu> _getAdminDrawerItems(List<AppMenu> adminMenus) {
     return adminMenus
         .where((m) => !_adminBottomNavNames.contains(m.name.toLowerCase().trim()))
@@ -113,10 +138,7 @@ class _AdminLayoutState extends State<AdminLayout> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              authProvider.logout();
-              context.go(AppRoutes.welcome);
-            },
+            onPressed: () => _showLogoutConfirm(context, authProvider),
           ),
         ],
       ),

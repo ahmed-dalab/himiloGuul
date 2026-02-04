@@ -120,17 +120,20 @@ class BusinessService {
 
   // POST /api/business - Create business (sellers/owners can create).
   // When imageFiles is provided, sends multipart/form-data and uploads images to Cloudinary via backend.
+  // ownerId: only for admin creating on behalf of a seller; omit for seller (they are the owner).
   Future<Map<String, dynamic>> createBusiness(
     String token, {
     required String name,
-    required String address,
-    required String phone,
-    required String email,
+    String? address,
+    String? phone,
+    String? email,
     String? website,
     String? description,
     String? category,
     double? askingPrice,
+    double? annualRevenue,
     String? location,
+    String? ownerId,
     List<XFile>? imageFiles,
   }) async {
     try {
@@ -139,17 +142,17 @@ class BusinessService {
 
       if (hasImages) {
         final formData = FormData();
-        formData.fields.addAll([
-          MapEntry('name', name),
-          MapEntry('address', address),
-          MapEntry('phone', phone),
-          MapEntry('email', email),
-        ]);
+        formData.fields.add(MapEntry('name', name));
+        if (address != null && address.isNotEmpty) formData.fields.add(MapEntry('address', address));
+        if (phone != null && phone.isNotEmpty) formData.fields.add(MapEntry('phone', phone));
+        if (email != null && email.isNotEmpty) formData.fields.add(MapEntry('email', email));
         if (website != null && website.isNotEmpty) formData.fields.add(MapEntry('website', website));
-        if (description != null) formData.fields.add(MapEntry('description', description));
+        if (description != null && description.isNotEmpty) formData.fields.add(MapEntry('description', description));
         if (category != null) formData.fields.add(MapEntry('category', category));
         if (askingPrice != null) formData.fields.add(MapEntry('askingPrice', askingPrice.toString()));
+        if (annualRevenue != null) formData.fields.add(MapEntry('annualRevenue', annualRevenue.toString()));
         if (location != null) formData.fields.add(MapEntry('location', location));
+        if (ownerId != null && ownerId.isNotEmpty) formData.fields.add(MapEntry('owner', ownerId));
 
         for (var i = 0; i < imageFiles.length; i++) {
           final x = imageFiles[i];
@@ -172,15 +175,17 @@ class BusinessService {
 
       final data = <String, dynamic>{
         'name': name,
-        'address': address,
-        'phone': phone,
-        'email': email,
       };
+      if (address != null) data['address'] = address;
+      if (phone != null) data['phone'] = phone;
+      if (email != null) data['email'] = email;
       if (website != null) data['website'] = website;
       if (description != null) data['description'] = description;
       if (category != null) data['category'] = category;
       if (askingPrice != null) data['askingPrice'] = askingPrice;
+      if (annualRevenue != null) data['annualRevenue'] = annualRevenue;
       if (location != null) data['location'] = location;
+      if (ownerId != null && ownerId.isNotEmpty) data['owner'] = ownerId;
 
       final response = await _dio.post(
         '${ApiConstants.baseUrl}${ApiConstants.businesses}',

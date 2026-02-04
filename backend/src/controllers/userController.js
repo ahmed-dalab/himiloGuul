@@ -195,6 +195,7 @@ const getAllUsers = async (req, res) => {
       page = 1,
       limit = 10,
       roleId,
+      role: roleName,
       isBanned,
       sortBy = "createdAt",
       sortOrder = "desc",
@@ -206,6 +207,14 @@ const getAllUsers = async (req, res) => {
 
     if (roleId) {
       query.roleId = roleId;
+    } else if (roleName) {
+      // Filter by role name (e.g. ?role=seller)
+      const roleDoc = await Role.findOne({
+        name: { $regex: `^${String(roleName).trim()}$`, $options: "i" },
+      });
+      if (roleDoc) {
+        query.roleId = roleDoc._id;
+      }
     }
 
     if (isBanned !== undefined) {

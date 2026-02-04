@@ -19,6 +19,35 @@ class _MenusScreenState extends State<MenusScreen> {
   List<dynamic> _menus = [];
   bool _loading = true;
   String? _error;
+  /// Local toggle state: menuId -> isActive (only for menus that were toggled)
+  final Map<String, bool> _activeOverrides = {};
+  bool _saving = false;
+
+  List<dynamic> get _mainMenus {
+    return _menus.where((m) {
+      final parent = m['parentId'];
+      return parent == null || parent.toString() == 'null';
+    }).toList();
+  }
+
+  List<dynamic> get _subMenus {
+    return _menus.where((m) {
+      final parent = m['parentId'];
+      return parent != null && parent.toString() != 'null';
+    }).toList();
+  }
+
+  bool _isActive(Map<String, dynamic> menu) {
+    final id = menu['_id']?.toString() ?? menu['id']?.toString() ?? '';
+    if (_activeOverrides.containsKey(id)) return _activeOverrides[id]!;
+    return menu['isActive'] != false;
+  }
+
+  void _setActive(String menuId, bool value) {
+    setState(() {
+      _activeOverrides[menuId] = value;
+    });
+  }
 
   @override
   void initState() {
@@ -35,6 +64,7 @@ class _MenusScreenState extends State<MenusScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _activeOverrides.clear();
     });
     try {
       final res = await _menuService.getAllMenus(token: token);
@@ -131,6 +161,115 @@ class _MenusScreenState extends State<MenusScreen> {
     }
   }
 
+  Future<void> _updateMenuStructure() async {
+    if (_activeOverrides.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No changes to save')),
+      );
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) return;
+    setState(() => _saving = true);
+    try {
+      for (final entry in _activeOverrides.entries) {
+        await _menuService.updateMenu(token, entry.key, isActive: entry.value);
+      }
+      if (mounted) {
+        setState(() {
+          _activeOverrides.clear();
+          _saving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Menu structure updated')),
+        );
+        _load();
+        context.read<AuthProvider>().refreshMenus();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    }
+  }
+
+  Widget _buildMenuRow(Map<String, dynamic> menu) {
+    final id = menu['_id']?.toString() ?? menu['id']?.toString() ?? '';
+    final name = menu['name'] as String? ?? '—';
+    final path = menu['path'] as String? ?? '—';
+    final icon = AppMenu.getIconForPath(path);
+    final isActive = _isActive(menu);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => _openEditModal(menu),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: AppColors.darkGray, size: 24),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: InkWell(
+              onTap: () => _openEditModal(menu),
+              borderRadius: BorderRadius.circular(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: AppColors.darkGray,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    path,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Switch(
+            value: isActive,
+            onChanged: (value) => _setActive(id, value),
+            activeColor: AppColors.primaryBlue,
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
+            padding: EdgeInsets.zero,
+            onSelected: (value) {
+              if (value == 'edit') _openEditModal(menu);
+              if (value == 'delete') _delete(id, name);
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'edit', child: Text('Edit')),
+              const PopupMenuItem(value: 'delete', child: Text('Delete')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,10 +281,31 @@ class _MenusScreenState extends State<MenusScreen> {
           color: AppColors.darkGray,
           onPressed: () => context.go('/admin'),
         ),
-        title: const Text('Menus Management'),
+        title: const Text(
+          'Menu Configuration',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.darkGray,
+          ),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _openCreateModal,
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Add Menu'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
@@ -166,82 +326,82 @@ class _MenusScreenState extends State<MenusScreen> {
                     ],
                   ),
                 )
-              : _menus.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No menus yet. Tap + to create one.',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                        itemCount: _menus.length,
-                        itemBuilder: (context, index) {
-                          final m = _menus[index] as Map<String, dynamic>;
-                          final id = m['_id'] as String? ?? m['id'] as String? ?? '';
-                          final name = m['name'] as String? ?? '—';
-                          final path = m['path'] as String? ?? '—';
-                          final parent = m['parentId'];
-                          final parentName = parent is Map
-                              ? (parent['name'] as String? ?? '—')
-                              : '—';
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade200),
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_mainMenus.isNotEmpty) ...[
+                          const Text(
+                            'Main Menu',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkGray,
                             ),
-                            child: ListTile(
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryBlue.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  AppMenu.getIconForPath(path),
-                                  color: AppColors.primaryBlue,
-                                  size: 24,
-                                ),
-                              ),
-                              title: Text(
-                                name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.darkGray,
-                                ),
-                              ),
-                              subtitle: Text(
-                                path + (parentName != '—' ? ' • Parent: $parentName' : ''),
-                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined, color: AppColors.primaryBlue),
-                                    onPressed: () => _openEditModal(m),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                    onPressed: () => _delete(id, name),
-                                  ),
-                                ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...(_mainMenus.map((m) => _buildMenuRow(m as Map<String, dynamic>))),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_subMenus.isNotEmpty) ...[
+                          const Text(
+                            'Sub-menus',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkGray,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...(_subMenus.map((m) => _buildMenuRow(m as Map<String, dynamic>))),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_menus.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                'No menus yet. Tap "+ Add Menu" to create one.',
+                                style: TextStyle(color: Colors.grey.shade600),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                      ],
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openCreateModal,
-        backgroundColor: AppColors.primaryBlue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+                  ),
+                ),
+      bottomNavigationBar: _menus.isNotEmpty
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _saving || _activeOverrides.isEmpty ? null : _updateMenuStructure,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Update Menu Structure'),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

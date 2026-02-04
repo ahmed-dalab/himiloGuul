@@ -13,6 +13,8 @@ class Business {
   final String status;
   final bool isSold;
   final DateTime createdAt;
+  /// Owner (seller) user id - for contact form sellerRef
+  final String? ownerId;
 
   Business({
     required this.id,
@@ -29,9 +31,12 @@ class Business {
     required this.status,
     required this.isSold,
     required this.createdAt,
+    this.ownerId,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
+    final owner = json['owner'];
+    final ownerId = owner is Map ? (owner['_id'] as String?) : (owner is String ? owner : null);
     return Business(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
@@ -50,6 +55,7 @@ class Business {
       status: json['status'] ?? 'pending',
       isSold: json['isSold'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
+      ownerId: ownerId,
     );
   }
 }

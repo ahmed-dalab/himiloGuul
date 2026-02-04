@@ -69,15 +69,17 @@ class MenuService {
     required String name,
     required String path,
     String? parentId,
+    bool? isActive,
+    String? icon,
   }) async {
     try {
       final data = <String, dynamic>{
         'name': name,
         'path': path,
       };
-      if (parentId != null) {
-        data['parentId'] = parentId;
-      }
+      if (parentId != null) data['parentId'] = parentId;
+      if (isActive != null) data['isActive'] = isActive;
+      if (icon != null) data['icon'] = icon;
 
       final response = await _dio.post(
         '${ApiConstants.baseUrl}${ApiConstants.menus}',
@@ -107,6 +109,8 @@ class MenuService {
     String? name,
     String? path,
     String? parentId,
+    bool? isActive,
+    String? icon,
     bool includeParentId = false,
   }) async {
     try {
@@ -114,6 +118,10 @@ class MenuService {
       if (name != null) data['name'] = name;
       if (path != null) data['path'] = path;
       if (includeParentId) data['parentId'] = parentId;
+      if (isActive != null) data['isActive'] = isActive;
+      if (icon != null) data['icon'] = icon;
+      // When updating from form, send icon (including null to clear)
+      if (includeParentId) data['icon'] = icon;
 
       final response = await _dio.put(
         '${ApiConstants.baseUrl}${ApiConstants.menus}/$id',

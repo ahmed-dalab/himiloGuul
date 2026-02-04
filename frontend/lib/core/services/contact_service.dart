@@ -16,16 +16,24 @@ class ContactService {
     String token, {
     required String sellerRef,
     required String businessRef,
+    required String name,
+    required String email,
+    String? phone,
     required String message,
   }) async {
     try {
+      final data = <String, dynamic>{
+        'sellerRef': sellerRef,
+        'businessRef': businessRef,
+        'name': name,
+        'email': email,
+        'message': message,
+      };
+      if (phone != null && phone.isNotEmpty) data['phone'] = phone;
+
       final response = await _dio.post(
         '${ApiConstants.baseUrl}${ApiConstants.contacts}',
-        data: {
-          'sellerRef': sellerRef,
-          'businessRef': businessRef,
-          'message': message,
-        },
+        data: data,
         options: _getAuthOptions(token),
       );
 

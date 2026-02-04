@@ -66,6 +66,31 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     (title: 'Help & Support', icon: Icons.help_outline),
   ];
 
+  static Future<void> _showLogoutConfirm(BuildContext context, AuthProvider auth) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      auth.logout();
+      context.go(AppRoutes.welcome);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -142,10 +167,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                auth.logout();
-                context.go(AppRoutes.welcome);
-              },
+              onPressed: () => _showLogoutConfirm(context, auth),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,

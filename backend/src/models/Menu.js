@@ -17,6 +17,15 @@ const menuSchema = new mongoose.Schema(
       ref: "Menu",
       default: null,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    icon: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   { timestamps: true }
 );

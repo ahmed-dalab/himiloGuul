@@ -17,6 +17,9 @@ import '../screens/admin/permissions_screen.dart';
 import '../screens/admin/role_permissions_screen.dart';
 import '../screens/admin/settings_screen.dart';
 import '../screens/admin/admin_business_detail_screen.dart';
+import '../screens/business/create_business_screen.dart';
+import '../screens/business/contact_form_screen.dart';
+import '../screens/business/contact_success_screen.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthProvider authProvider) {
@@ -40,8 +43,11 @@ class AppRouter {
           }
         }
 
-        // Not logged in: redirect away from protected layouts
-        if (!isAuth && (path.startsWith('/admin') || path.startsWith('/seller'))) {
+        // Not logged in: redirect away from protected layouts and create-business
+        if (!isAuth &&
+            (path.startsWith('/admin') ||
+                path.startsWith('/seller') ||
+                path == AppRoutes.createBusiness)) {
           return AppRoutes.welcome;
         }
 
@@ -63,6 +69,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.browseBusiness, // Buyer essentially
         builder: (context, state) => const BrowseBusinessScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.createBusiness,
+        builder: (context, state) => const CreateBusinessScreen(),
       ),
       GoRoute(
         path: AppRoutes.users,
@@ -104,12 +114,35 @@ class AppRouter {
           return AdminBusinessDetailScreen(businessId: id);
         },
       ),
-      // Add other routes here as they are implemented
+      // Public business detail + contact flow
       GoRoute(
         path: '${AppRoutes.businessDetail}/:id',
+        routes: [
+          GoRoute(
+            path: 'contact',
+            builder: (context, state) {
+              final businessId = state.pathParameters['id']!;
+              final extra = state.extra as Map<String, dynamic>?;
+              return ContactFormScreen(
+                businessId: businessId,
+                businessName: extra?['businessName'] as String? ?? 'Business',
+                businessCategory: extra?['businessCategory'] as String? ?? '',
+                imageUrl: extra?['imageUrl'] as String?,
+                sellerRef: extra?['sellerRef'] as String? ?? '',
+              );
+            },
+          ),
+          GoRoute(
+            path: 'contact/success',
+            builder: (context, state) {
+              final businessId = state.pathParameters['id']!;
+              return ContactSuccessScreen(businessId: businessId);
+            },
+          ),
+        ],
         builder: (context, state) {
-           final businessId = state.pathParameters['id']!;
-           return BusinessDetailScreen(businessId: businessId);
+          final businessId = state.pathParameters['id']!;
+          return BusinessDetailScreen(businessId: businessId);
         },
       ),
     ],

@@ -65,6 +65,31 @@ class _SellerLayoutState extends State<SellerLayout> {
 
   static const List<String> _sellerDrawerExclude = ['home', 'my business', 'contacts', 'profile'];
 
+  static Future<void> _showLogoutConfirm(BuildContext context, AuthProvider authProvider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      authProvider.logout();
+      context.go(AppRoutes.welcome);
+    }
+  }
+
   List<AppMenu> _getSellerDrawerItems(List<AppMenu> sellerMenus) {
     return sellerMenus
         .where((m) => !_sellerDrawerExclude.contains(m.name.toLowerCase().trim()))
@@ -96,10 +121,7 @@ class _SellerLayoutState extends State<SellerLayout> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              authProvider.logout();
-              context.go(AppRoutes.welcome);
-            },
+            onPressed: () => _showLogoutConfirm(context, authProvider),
           ),
         ],
       ),

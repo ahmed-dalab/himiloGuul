@@ -29,6 +29,8 @@ const MenuPermission = require("../src/models/MenuPermission");
 
 const ADMIN_EMAIL = "ali@gmail.com";
 const ADMIN_PASSWORD = "admin123";
+const SELLER_EMAIL = "seller@example.com";
+const SELLER_PASSWORD = "seller123";
 const ADMIN_ROLE_NAME = "admin";
 const SELLER_ROLE_NAME = "seller";
 
@@ -118,6 +120,28 @@ async function seed() {
         roleId: adminRole._id,
       });
       console.log(`  ✓ Created user ${ADMIN_EMAIL} (password: ${ADMIN_PASSWORD})`);
+    }
+
+    // 2b. Seller test user (for manual testing)
+    console.log("\n=== Seller Test User ===");
+    const existingSeller = await User.findOne({ email: SELLER_EMAIL });
+    if (existingSeller) {
+      if (existingSeller.roleId?.toString() !== sellerRole._id.toString()) {
+        existingSeller.roleId = sellerRole._id;
+        await existingSeller.save();
+        console.log(`  ✓ Updated user role to seller`);
+      } else {
+        console.log(`  ✓ User ${SELLER_EMAIL} already exists`);
+      }
+    } else {
+      const hashedSellerPassword = await bcrypt.hash(SELLER_PASSWORD, 10);
+      await User.create({
+        name: "Test Seller",
+        email: SELLER_EMAIL,
+        password: hashedSellerPassword,
+        roleId: sellerRole._id,
+      });
+      console.log(`  ✓ Created user ${SELLER_EMAIL} (password: ${SELLER_PASSWORD})`);
     }
 
     // 3. Menus (by path)

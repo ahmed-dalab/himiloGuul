@@ -4,13 +4,13 @@ const Business = require("../models/Business");
 // Create contact (buyers can create)
 const createContact = async (req, res) => {
   try {
-    const { sellerRef, businessRef, message } = req.body;
+    const { sellerRef, businessRef, name, email, phone, message } = req.body;
 
     // Validate required fields
-    if (!sellerRef || !businessRef || !message) {
+    if (!sellerRef || !businessRef || !name || !email || !message) {
       return res.status(400).json({
         success: false,
-        message: "Seller, business, and message are required",
+        message: "Seller, business, name, email, and message are required",
       });
     }
 
@@ -59,7 +59,10 @@ const createContact = async (req, res) => {
       buyerRef: req.user._id,
       sellerRef,
       businessRef,
-      message,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone ? phone.trim() : undefined,
+      message: message.trim(),
       status: "pending",
     });
 

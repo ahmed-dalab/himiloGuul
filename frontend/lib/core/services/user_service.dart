@@ -163,12 +163,13 @@ class UserService {
     }
   }
 
-  // GET /api/users - Get all users (only admin can access)
+  // GET /api/users - Get all users (only admin can access). Use role to filter by role name (e.g. 'seller').
   Future<Map<String, dynamic>> getAllUsers(
     String token, {
     int? page,
     int? limit,
     String? roleId,
+    String? role,
     bool? isBanned,
     String? sortBy,
     String? sortOrder,
@@ -179,6 +180,7 @@ class UserService {
       if (page != null) queryParams['page'] = page;
       if (limit != null) queryParams['limit'] = limit;
       if (roleId != null) queryParams['roleId'] = roleId;
+      if (role != null) queryParams['role'] = role;
       if (isBanned != null) queryParams['isBanned'] = isBanned;
       if (sortBy != null) queryParams['sortBy'] = sortBy;
       if (sortOrder != null) queryParams['sortOrder'] = sortOrder;

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../config/app_colors.dart';
 import '../../../core/services/admin_service.dart';
 import '../../providers/auth_provider.dart';
-import 'admin_business_form_modal.dart';
+import '../../routes/app_routes.dart';
 
 /// Status filter: all, pending, approved, rejected
 enum _BusinessFilter { all, pending, approved, rejected }
@@ -129,19 +129,10 @@ class _AdminBusinessScreenState extends State<AdminBusinessScreen> {
     }
   }
 
-  void _openCreateModal() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (ctx) => AdminBusinessFormModal(
-        isEdit: false,
-        onSaved: () {
-          Navigator.of(ctx).pop();
-          _load();
-        },
-      ),
-    );
+  void _openCreateFlow() {
+    context.push(AppRoutes.createBusiness).then((_) {
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -275,7 +266,7 @@ class _AdminBusinessScreenState extends State<AdminBusinessScreen> {
           right: 16,
           bottom: 24,
           child: FloatingActionButton(
-            onPressed: _openCreateModal,
+            onPressed: _openCreateFlow,
             backgroundColor: AppColors.primaryBlue,
             child: const Icon(Icons.add, color: Colors.white),
           ),

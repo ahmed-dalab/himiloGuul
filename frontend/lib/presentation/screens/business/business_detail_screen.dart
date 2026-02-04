@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/business_provider.dart';
+import '../../routes/app_routes.dart';
 import '../../../config/app_colors.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
@@ -142,68 +143,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 fullWidth: true,
                               ),
                             
-                            const SizedBox(height: 32),
-                            
-                            // Overview
-                            const Text(
-                              'Overview',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.darkGray,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              business.description ?? 'No description available.',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.lightGray,
-                                height: 1.5,
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 24),
-                            
-                             // Financials (Static Placeholder as requested by design)
-                            const Text(
-                              'Financials',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.darkGray,
-                              ),
-                            ),
-                             const SizedBox(height: 12),
-                            const Text(
-                              'The company\'s financials are robust, with a steady increase in annual revenue. Detailed financial statements are available upon request for serious inquiries.',
-                               style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.lightGray,
-                                height: 1.5,
-                              ),
-                            ),
-
-                             const SizedBox(height: 24),
-                            
-                             // Reason for Sale (Static Placeholder)
-                            const Text(
-                              'Reason for Sale',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.darkGray,
-                              ),
-                            ),
-                             const SizedBox(height: 12),
-                            const Text(
-                              'The current owner is seeking to retire and is looking for a suitable buyer to continue the company\'s legacy and growth trajectory.',
-                               style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.lightGray,
-                                height: 1.5,
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -212,59 +151,47 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 ),
               ),
               
-              // Bottom Action Bar
+              // Bottom Action Bar - Contact only
               Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: () {
-                             // TODO: Implement contact seller
-                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact Seller clicked')));
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Contact Seller',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                        ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final sellerRef = business.ownerId;
+                      if (sellerRef == null || sellerRef.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('This business has no seller assigned')),
+                        );
+                        return;
+                      }
+                      context.push(
+                        '${AppRoutes.businessDetail}/${business.id}/contact',
+                        extra: {
+                          'businessId': business.id,
+                          'businessName': business.name,
+                          'businessCategory': business.category ?? 'Business',
+                          'imageUrl': business.images.isNotEmpty
+                              ? business.images.first.url
+                              : null,
+                          'sellerRef': sellerRef,
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      elevation: 0,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: SizedBox(
-                        height: 56,
-                        child: OutlinedButton(
-                          onPressed: () {
-                             // TODO: Implement inquire now
-                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inquire Now clicked')));
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.grey[100],
-                            foregroundColor: AppColors.darkGray,
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Inquire Now',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
+                    child: const Text(
+                      'Contact',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
