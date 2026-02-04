@@ -1,7 +1,7 @@
 /**
  * Seed default roles and menus. Run: node scripts/seed-roles.js
  * Requires: MONGO_URI in .env (or set before running)
- * 
+ *
  * Creates:
  * - 3 roles: admin, seller, buyer
  * - Bottom navigation menus: home, business, deals, profile
@@ -20,7 +20,7 @@ const ROLES = ["admin", "seller", "buyer"];
 const BOTTOM_NAV_MENUS = [
   { name: "Home", path: "/" },
   { name: "Business", path: "/business" },
-  { name: "Deals", path: "/deals" },
+  { name: "Users", path: "/users" },
   { name: "Profile", path: "/profile" },
 ];
 
@@ -48,7 +48,7 @@ async function seedRoles() {
 
 async function seedMenus() {
   console.log("\n=== Seeding Menus ===");
-  
+
   // Seed bottom navigation menus
   console.log("\n  Bottom Navigation Menus:");
   for (const menu of BOTTOM_NAV_MENUS) {

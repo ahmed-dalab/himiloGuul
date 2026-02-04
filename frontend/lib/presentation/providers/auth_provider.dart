@@ -13,8 +13,9 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoadingMenus = false;
   Future<void>? _restoreFuture;
 
-  // Bottom navigation menus (only these 4 paths)
-  static const List<String> _bottomNavPaths = ['/', '/business', '/users', '/profile'];
+  /// Exactly these 4 menu names (case-insensitive) go to bottom navigation. All others go to drawer.
+  /// No menu is shown in both.
+  static const List<String> _bottomNavMenuNames = ['home', 'business', 'users', 'profile'];
 
   AuthProvider({AuthService? authService}) 
       : _authService = authService ?? AuthService();
@@ -24,6 +25,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   List<AppMenu> get allMenus => _allMenus;
   bool get isLoadingMenus => _isLoadingMenus;
+
+  /// Reload menus from the backend (e.g. after creating/editing/deleting menus on admin portal).
+  /// Call this so the drawer/sidebar updates after changes.
+  Future<void> refreshMenus() async {
+    if (_currentUser == null || _token == null) return;
+    await _loadMenus();
+  }
 
   // Login
   Future<bool> login(String email, String password) async {
@@ -158,48 +166,40 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
+  /// Fallback when backend fails: empty so menu visibility stays permission-based (no hard-coded menus).
   List<AppMenu> _getFallbackMenus(UserRole role) {
-    if (role == UserRole.admin) {
-      return [
-        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home, order: 10),
-        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business, order: 20),
-        AppMenu(id: '3', name: 'Users', path: '/users', icon: Icons.people, order: 30),
-        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person, order: 40),
-        AppMenu(id: '5', name: 'Roles', path: '/admin/roles', icon: Icons.admin_panel_settings, order: 50),
-        AppMenu(id: '6', name: 'Menus', path: '/admin/menus', icon: Icons.menu, order: 60),
-        AppMenu(id: '7', name: 'Permissions', path: '/admin/permissions', icon: Icons.lock, order: 70),
-        AppMenu(id: '8', name: 'Settings', path: '/admin/settings', icon: Icons.settings, order: 80),
-      ];
-    } else if (role == UserRole.seller) {
-      return [
-        AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home, order: 10),
-        AppMenu(id: '2', name: 'Business', path: '/business', icon: Icons.business, order: 20),
-        AppMenu(id: '3', name: 'Users', path: '/users', icon: Icons.people, order: 30),
-        AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person, order: 40),
-      ];
-    }
     return [];
   }
   
-  // Get bottom navigation items (only Home, Business, Users, Profile)
+  /// Bottom nav: only the 4 menus named Home, Business, Users, Profile (first match per name, in that order).
+  /// No menu appears in both bottom nav and drawer.
   List<AppMenu> get bottomNavItems {
+    final result = <AppMenu>[];
+    for (final name in _bottomNavMenuNames) {
+      final match = _allMenus.where(
+        (m) => m.name.toLowerCase().trim() == name,
+      );
+      if (match.isNotEmpty) {
+        result.add(match.first);
+      }
+    }
+    return result;
+  }
+
+  /// Drawer: all menus that are NOT one of the 4 bottom nav menus (by name).
+  List<AppMenu> get drawerItems {
     return _allMenus
-        .where((menu) => _bottomNavPaths.contains(menu.path))
+        .where((m) => !_bottomNavMenuNames.contains(m.name.toLowerCase().trim()))
         .toList();
   }
-  
-  // Get drawer items (all other menus), deduplicated so we don't show
-  // both "Users" (/admin/users) and a stray "users" (e.g. path "users") from the API
-  List<AppMenu> get drawerItems {
-    final items = _allMenus
-        .where((menu) => !_bottomNavPaths.contains(menu.path))
-        .toList();
-    
-    // Explicitly filter out any users-related menu items from drawer
-    return items.where((m) {
-      final path = m.path.toLowerCase();
-      final name = m.name.toLowerCase();
-      return !path.contains('user') && !name.contains('user');
-    }).toList();
+
+  /// Menus for admin portal only (path starts with /admin). Use for permission-driven display.
+  List<AppMenu> get adminMenus {
+    return _allMenus.where((m) => m.path.startsWith('/admin')).toList();
+  }
+
+  /// Menus for seller portal only (path starts with /seller). Use for permission-driven display.
+  List<AppMenu> get sellerMenus {
+    return _allMenus.where((m) => m.path.startsWith('/seller')).toList();
   }
 }

@@ -37,6 +37,7 @@ class ApiConstants {
   
   // Menu endpoints
   static const String menus = '/menus';
+  static const String menusMe = '/menus/me';
   
   // Contact endpoints
   static const String contacts = '/contacts';

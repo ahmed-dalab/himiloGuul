@@ -6,13 +6,13 @@ const {
   updatePermission,
   deletePermission,
 } = require("../controllers/permissionController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const { protect, requireAdminOrPermission } = require("../middlewares/authMiddleware");
 
 const router = Router();
 
-// All permission routes require authentication and admin role
+// All permission routes require authentication and admin role OR permission "manage_permissions"
 router.use(protect);
-router.use(authorize("admin"));
+router.use(requireAdminOrPermission("manage_permissions"));
 
 // Create permission
 router.post("/", createPermission);

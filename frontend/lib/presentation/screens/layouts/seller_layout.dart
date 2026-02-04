@@ -5,6 +5,10 @@ import '../../providers/auth_provider.dart';
 import '../../../config/app_colors.dart';
 import '../../../core/models/menu_model.dart';
 import '../../routes/app_routes.dart';
+import '../seller/seller_dashboard_screen.dart';
+import '../seller/seller_my_businesses_screen.dart';
+import '../seller/seller_profile_screen.dart';
+import '../seller/seller_contacts_screen.dart';
 
 class SellerLayout extends StatefulWidget {
   const SellerLayout({super.key});
@@ -15,39 +19,65 @@ class SellerLayout extends StatefulWidget {
 
 class _SellerLayoutState extends State<SellerLayout> {
   int _selectedIndex = 0;
+  String _currentPath = '/seller/dashboard';
 
-  // Order bottom nav items: Home, Business, Users, Profile
+  // Seller portal: Home, My Business, Contacts, Profile (permission-driven)
+  static const List<String> _bottomNavOrder = ['home', 'my business', 'contacts', 'profile'];
+
   List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
-    const order = ['/', '/business', '/users', '/profile'];
     final ordered = <AppMenu>[];
-    for (final path in order) {
-      try {
-        final menu = items.firstWhere((item) => item.path == path);
-        ordered.add(menu);
-      } catch (e) {
-        // Menu not found, skip it
-        continue;
-      }
+    for (final name in _bottomNavOrder) {
+      final match = items.where((m) => m.name.toLowerCase().trim() == name);
+      if (match.isNotEmpty) ordered.add(match.first);
     }
     return ordered;
   }
 
-  // BottomNavigationBar requires at least 2 items. When menus are cleared (e.g. on logout),
-  // use a fallback so we don't crash before the router redirects.
   List<AppMenu> _getEffectiveBottomNavItems(List<AppMenu> items) {
-    final ordered = _getOrderedBottomNavItems(items);
-    if (ordered.length >= 2) return ordered;
-    return [
-      AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
-      AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
-    ];
+    return _getOrderedBottomNavItems(items);
+  }
+
+  Widget _bodyForPath(String path) {
+    switch (path) {
+      case '/seller/dashboard':
+        return const SellerDashboardScreen();
+      case '/seller/my-businesses':
+        return const SellerMyBusinessesScreen();
+      case '/seller/profile':
+        return const SellerProfileScreen();
+      case '/seller/contacts':
+        return const SellerContactsScreen();
+      default:
+        return const SellerDashboardScreen();
+    }
+  }
+
+  void _navigateToScreen(BuildContext context, String path) {
+    setState(() {
+      _currentPath = path;
+      final sellerMenus = context.read<AuthProvider>().sellerMenus;
+      final effectiveItems = _getEffectiveBottomNavItems(_getOrderedBottomNavItems(sellerMenus));
+      final idx = effectiveItems.indexWhere((m) => m.path == path);
+      _selectedIndex = idx >= 0 ? idx : _selectedIndex;
+    });
+    Navigator.pop(context); // close drawer
+  }
+
+  static const List<String> _sellerDrawerExclude = ['home', 'my business', 'contacts', 'profile'];
+
+  List<AppMenu> _getSellerDrawerItems(List<AppMenu> sellerMenus) {
+    return sellerMenus
+        .where((m) => !_sellerDrawerExclude.contains(m.name.toLowerCase().trim()))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final bottomNavItems = authProvider.bottomNavItems;
-    final effectiveItems = _getEffectiveBottomNavItems(bottomNavItems);
+    // Permission-driven: only seller-path menus (menus without permission are hidden)
+    final sellerMenus = authProvider.sellerMenus;
+    final effectiveItems = _getEffectiveBottomNavItems(_getOrderedBottomNavItems(sellerMenus));
+    final drawerItems = _getSellerDrawerItems(sellerMenus);
 
     if (_selectedIndex >= effectiveItems.length) {
       _selectedIndex = 0;
@@ -63,7 +93,7 @@ class _SellerLayoutState extends State<SellerLayout> {
         backgroundColor: Colors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -73,39 +103,51 @@ class _SellerLayoutState extends State<SellerLayout> {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            const Icon(Icons.storefront, size: 64, color: AppColors.primaryBlue),
-            const SizedBox(height: 16),
-            Text(
-              'Seller ${effectiveItems.isNotEmpty ? effectiveItems[_selectedIndex].name : ""} Area',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            UserAccountsDrawerHeader(
+              accountName: Text(authProvider.currentUser?.name ?? 'Seller'),
+              accountEmail: Text(authProvider.currentUser?.email ?? ''),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: AppColors.primaryBlue),
+              ),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryBlue,
+              ),
             ),
-             const SizedBox(height: 8),
-            const Text('Manage your shops and orders.'),
+            ...drawerItems.map((menu) => ListTile(
+                  leading: Icon(menu.icon),
+                  title: Text(menu.name),
+                  onTap: () => _navigateToScreen(context, menu.path),
+                )),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex.clamp(0, effectiveItems.length - 1),
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        items: effectiveItems.map((menu) {
-          return BottomNavigationBarItem(
-            icon: Icon(menu.icon, color: Colors.grey),
-            activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
-            label: menu.name,
-          );
-        }).toList(),
-      ),
+      body: _bodyForPath(_currentPath),
+      bottomNavigationBar: effectiveItems.length >= 2
+          ? BottomNavigationBar(
+              currentIndex: _selectedIndex.clamp(0, effectiveItems.length - 1),
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                  _currentPath = effectiveItems[index].path;
+                });
+              },
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppColors.primaryBlue,
+              unselectedItemColor: Colors.grey,
+              items: effectiveItems.map((menu) {
+                return BottomNavigationBarItem(
+                  icon: Icon(menu.icon, color: Colors.grey),
+                  activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
+                  label: menu.name,
+                );
+              }).toList(),
+            )
+          : null,
     );
   }
 }

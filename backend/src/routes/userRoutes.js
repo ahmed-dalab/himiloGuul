@@ -7,7 +7,7 @@ const {
   updateUser,
   deleteUser,
 } = require("../controllers/userController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const { protect, requireAdminOrPermission } = require("../middlewares/authMiddleware");
 
 const router = Router();
 
@@ -29,7 +29,7 @@ router.put("/:id", protect, updateUser);
 // DELETE /api/users/:id - Delete user (admin and the user himself can access)
 router.delete("/:id", protect, deleteUser);
 
-// GET /api/users - Get all users (only admin can access)
-router.get("/", protect, authorize("admin"), getAllUsers);
+// GET /api/users - Get all users: admin OR permission "manage_users"
+router.get("/", protect, requireAdminOrPermission("manage_users"), getAllUsers);
 
 module.exports = router;

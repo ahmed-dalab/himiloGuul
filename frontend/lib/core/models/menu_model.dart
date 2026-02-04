@@ -18,19 +18,25 @@ class AppMenu {
   });
 
   factory AppMenu.fromJson(Map<String, dynamic> json) {
+    final path = json['path'] ?? '';
+    final name = json['name'] ?? '';
+    final pathIcon = getIconForPath(path);
+    // Use name as fallback when path has no specific icon (e.g. custom paths)
+    final icon = pathIcon == Icons.circle ? getIconForName(name) : pathIcon;
     return AppMenu(
       id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
-      path: json['path'] ?? '',
-      icon: getIconForPath(json['path'] ?? ''),
+      name: name,
+      path: path,
+      icon: icon,
       parentId: json['parentId']?.toString(),
       order: json['order'] ?? 999,
     );
   }
 
-  // Map paths to Flutter icons (public for use in menus screen)
+  /// Map path to Flutter icon for drawer and bottom navigation.
   static IconData getIconForPath(String path) {
-    switch (path.toLowerCase()) {
+    final p = path.toLowerCase().trim();
+    switch (p) {
       case '/':
       case '/home':
         return Icons.home;
@@ -50,14 +56,27 @@ class AppMenu {
         return Icons.lock;
       case '/admin/settings':
         return Icons.settings;
+      case '/admin/role-permissions':
+        return Icons.link;
+      case '/seller/dashboard':
+        return Icons.home;
+      case '/seller/my-businesses':
+        return Icons.business;
+      case '/seller/profile':
+        return Icons.person;
+      case '/seller/deals':
+        return Icons.local_offer;
+      case '/seller/contacts':
+        return Icons.contacts;
       default:
         return Icons.circle;
     }
   }
 
-  // Map menu name to icon (fallback)
+  /// Map menu name to icon (fallback when path has no mapping).
   static IconData getIconForName(String name) {
-    switch (name.toLowerCase()) {
+    final n = name.toLowerCase().trim();
+    switch (n) {
       case 'home':
         return Icons.home;
       case 'business':
@@ -74,6 +93,12 @@ class AppMenu {
         return Icons.lock;
       case 'settings':
         return Icons.settings;
+      case 'role permissions':
+        return Icons.link;
+      case 'deals':
+        return Icons.local_offer;
+      case 'contacts':
+        return Icons.contacts;
       default:
         return Icons.circle;
     }

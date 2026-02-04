@@ -48,6 +48,9 @@ dependencies:
   # Navigation
   go_router: ^13.0.0
 
+  # Image picking for business photos
+  image_picker: ^1.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

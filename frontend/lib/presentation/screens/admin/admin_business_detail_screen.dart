@@ -180,6 +180,40 @@ class _AdminBusinessDetailScreenState extends State<AdminBusinessDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_businessImages(b).isNotEmpty) ...[
+              const Text(
+                'Images',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkGray,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 120,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _businessImages(b).length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final url = _businessImages(b)[i]['url'] as String? ?? '';
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: url.isNotEmpty
+                          ? Image.network(url, width: 120, height: 120, fit: BoxFit.cover)
+                          : Container(
+                              width: 120,
+                              height: 120,
+                              color: Colors.grey.shade300,
+                              child: Icon(Icons.broken_image, color: Colors.grey.shade600),
+                            ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             _DetailRow(label: 'Status', value: (b['status'] as String?) ?? '—'),
             _DetailRow(label: 'Category', value: (b['category'] as String?) ?? '—'),
             _DetailRow(label: 'Address', value: (b['address'] as String?) ?? '—'),
@@ -215,6 +249,15 @@ class _AdminBusinessDetailScreenState extends State<AdminBusinessDetailScreen> {
     if (v is num) return v.toDouble();
     if (v is String) return double.tryParse(v) ?? 0;
     return 0;
+  }
+
+  List<Map<String, dynamic>> _businessImages(Map<String, dynamic> b) {
+    final imgs = b['images'];
+    if (imgs is! List) return [];
+    return imgs
+        .where((e) => e is Map && (e['url'] != null || e['publicId'] != null))
+        .cast<Map<String, dynamic>>()
+        .toList();
   }
 }
 

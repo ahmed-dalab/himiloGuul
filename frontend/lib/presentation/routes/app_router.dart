@@ -14,6 +14,7 @@ import '../screens/admin/users_screen.dart';
 import '../screens/admin/roles_screen.dart';
 import '../screens/admin/menus_screen.dart';
 import '../screens/admin/permissions_screen.dart';
+import '../screens/admin/role_permissions_screen.dart';
 import '../screens/admin/settings_screen.dart';
 import '../screens/admin/admin_business_detail_screen.dart';
 
@@ -87,6 +88,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.permissionsManagement,
         builder: (context, state) => const PermissionsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.rolePermissionsManagement,
+        builder: (context, state) => const RolePermissionsScreen(),
       ),
       GoRoute(
         path: AppRoutes.settings,

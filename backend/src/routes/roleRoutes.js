@@ -6,13 +6,13 @@ const {
   updateRole,
   deleteRole,
 } = require("../controllers/roleController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const { protect, requireAdminOrPermission } = require("../middlewares/authMiddleware");
 
 const router = Router();
 
-// All role routes require authentication and admin role
+// All role routes require authentication and admin role OR permission "manage_roles"
 router.use(protect);
-router.use(authorize("admin"));
+router.use(requireAdminOrPermission("manage_roles"));
 
 // Role management routes
 router.post("/", createRole);

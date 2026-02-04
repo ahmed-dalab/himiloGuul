@@ -66,6 +66,7 @@ class _MenusScreenState extends State<MenusScreen> {
         onSaved: () {
           Navigator.of(ctx).pop();
           _load();
+          context.read<AuthProvider>().refreshMenus();
         },
       ),
     );
@@ -85,6 +86,7 @@ class _MenusScreenState extends State<MenusScreen> {
         onSaved: () {
           Navigator.of(ctx).pop();
           _load();
+          context.read<AuthProvider>().refreshMenus();
         },
       ),
     );
@@ -118,6 +120,7 @@ class _MenusScreenState extends State<MenusScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Menu deleted')));
         _load();
+        context.read<AuthProvider>().refreshMenus();
       }
     } catch (e) {
       if (mounted) {

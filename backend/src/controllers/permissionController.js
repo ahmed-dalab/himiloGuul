@@ -8,24 +8,23 @@ const createPermission = async (req, res) => {
   try {
     const { name, menuId } = req.body;
 
-    // Validate required fields
-    if (!name || !menuId) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "Name and menuId are required fields",
+        message: "Name is required",
       });
     }
 
-    // Verify menu exists
-    const menu = await Menu.findById(menuId);
-    if (!menu) {
-      return res.status(404).json({
-        success: false,
-        message: "Menu not found",
-      });
+    if (menuId) {
+      const menu = await Menu.findById(menuId);
+      if (!menu) {
+        return res.status(404).json({
+          success: false,
+          message: "Menu not found",
+        });
+      }
     }
 
-    // Check if permission name already exists
     const existingPermission = await Permission.findOne({ name });
     if (existingPermission) {
       return res.status(409).json({
@@ -34,8 +33,7 @@ const createPermission = async (req, res) => {
       });
     }
 
-    // Create permission
-    const permission = await Permission.create({ name, menuId });
+    const permission = await Permission.create({ name, menuId: menuId || undefined });
 
     // Populate menu details
     await permission.populate("menuId", "name path");

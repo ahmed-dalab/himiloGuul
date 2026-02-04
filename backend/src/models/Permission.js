@@ -8,10 +8,11 @@ const permissionSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
+    // Optional "primary" menu for display in admin UI. Menu visibility is driven by MenuPermission.
     menuId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Menu",
-      required: true,
+      required: false,
     },
   },
   { timestamps: true }

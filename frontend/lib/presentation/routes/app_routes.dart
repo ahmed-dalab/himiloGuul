@@ -30,5 +30,6 @@ class AppRoutes {
   static const String rolesManagement = '/admin/roles';
   static const String menusManagement = '/admin/menus';
   static const String permissionsManagement = '/admin/permissions';
+  static const String rolePermissionsManagement = '/admin/role-permissions';
   static const String settings = '/admin/settings';
 }

@@ -20,35 +20,41 @@ class AdminLayout extends StatefulWidget {
 class _AdminLayoutState extends State<AdminLayout> {
   int _selectedIndex = 0;
 
-  // Order bottom nav items: Home, Business, Users, Profile
+  // Order bottom nav items by name: Home, Business, Users, Profile (matches AuthProvider filter)
+  static const List<String> _bottomNavOrder = ['home', 'business', 'users', 'profile'];
+
   List<AppMenu> _getOrderedBottomNavItems(List<AppMenu> items) {
-    const order = ['/', '/business', '/users', '/profile'];
     final ordered = <AppMenu>[];
-    for (final path in order) {
-      try {
-        final menu = items.firstWhere((item) => item.path == path);
-        ordered.add(menu);
-      } catch (e) {
-        // Menu not found, skip it
-        continue;
-      }
+    for (final name in _bottomNavOrder) {
+      final match = items.where((m) => m.name.toLowerCase().trim() == name);
+      if (match.isNotEmpty) ordered.add(match.first);
     }
     return ordered;
   }
 
-  // BottomNavigationBar requires at least 2 items. When menus are cleared (e.g. on logout),
-  // use a fallback so we don't crash before the router redirects.
+  // Permission-driven: no fallback menus. Bottom nav only when we have 2+ items.
   List<AppMenu> _getEffectiveBottomNavItems(List<AppMenu> items) {
-    final ordered = _getOrderedBottomNavItems(items);
-    if (ordered.length >= 2) return ordered;
-    return [
-      AppMenu(id: '1', name: 'Home', path: '/', icon: Icons.home),
-      AppMenu(id: '4', name: 'Profile', path: '/profile', icon: Icons.person),
-    ];
+    return _getOrderedBottomNavItems(items);
   }
 
-  // Navigate to screen based on menu path
+  // Navigate to screen based on menu path (permission-driven; only admin menus shown)
   void _navigateToScreen(BuildContext context, String path) {
+    if (path == '/admin' || path == '/admin/') {
+      setState(() => _selectedIndex = 0);
+      return;
+    }
+    if (path == '/admin/business') {
+      setState(() => _selectedIndex = 1);
+      return;
+    }
+    if (path == '/admin/users') {
+      setState(() => _selectedIndex = 2);
+      return;
+    }
+    if (path == '/admin/profile') {
+      setState(() => _selectedIndex = 3);
+      return;
+    }
     switch (path) {
       case '/admin/roles':
         context.go(AppRoutes.rolesManagement);
@@ -59,25 +65,35 @@ class _AdminLayoutState extends State<AdminLayout> {
       case '/admin/permissions':
         context.go(AppRoutes.permissionsManagement);
         break;
+      case '/admin/role-permissions':
+        context.go(AppRoutes.rolePermissionsManagement);
+        break;
       case '/admin/settings':
         context.go(AppRoutes.settings);
         break;
       default:
-        // If path doesn't match, show a message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Navigation to $path not implemented yet')),
         );
     }
   }
 
+  static const List<String> _adminBottomNavNames = ['home', 'business', 'users', 'profile'];
+
+  List<AppMenu> _getAdminDrawerItems(List<AppMenu> adminMenus) {
+    return adminMenus
+        .where((m) => !_adminBottomNavNames.contains(m.name.toLowerCase().trim()))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
-    // items from provider
-    final bottomNavItems = authProvider.bottomNavItems;
-    final effectiveBottomItems = _getEffectiveBottomNavItems(bottomNavItems);
-    final drawerItems = authProvider.drawerItems;
+    // Permission-driven: only admin-path menus (menus without permission are hidden)
+    final adminMenus = authProvider.adminMenus;
+    final effectiveBottomItems = _getEffectiveBottomNavItems(_getOrderedBottomNavItems(adminMenus));
+    final drawerItems = _getAdminDrawerItems(adminMenus);
 
     // Safety check for index
     if (_selectedIndex >= effectiveBottomItems.length) {
@@ -139,24 +155,26 @@ class _AdminLayoutState extends State<AdminLayout> {
               : _selectedIndex == 2
                   ? const UsersScreen()
                   : const AdminProfileScreen(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex.clamp(0, effectiveBottomItems.length - 1),
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        items: effectiveBottomItems.map((menu) {
-          return BottomNavigationBarItem(
-            icon: Icon(menu.icon, color: Colors.grey),
-            activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
-            label: menu.name,
-          );
-        }).toList(),
-      ),
+      bottomNavigationBar: effectiveBottomItems.length >= 2
+          ? BottomNavigationBar(
+              currentIndex: _selectedIndex.clamp(0, effectiveBottomItems.length - 1),
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppColors.primaryBlue,
+              unselectedItemColor: Colors.grey,
+              items: effectiveBottomItems.map((menu) {
+                return BottomNavigationBarItem(
+                  icon: Icon(menu.icon, color: Colors.grey),
+                  activeIcon: Icon(menu.icon, color: AppColors.primaryBlue),
+                  label: menu.name,
+                );
+              }).toList(),
+            )
+          : null,
     );
   }
 }

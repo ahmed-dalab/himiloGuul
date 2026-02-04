@@ -76,14 +76,8 @@ const authorize = (...roles) => {
 /**
  * Check permissions based on RolePermission relationships
  * This middleware checks if the user's role has the specified permission(s)
- * 
- * Usage:
- * - Single permission: router.get("/", protect, checkPermission("view_users"), handler)
- * - Multiple permissions (OR logic - user needs at least one): 
- *   router.get("/", protect, checkPermission("view_users", "edit_users"), handler)
- * 
+ *
  * @param {...string} permissionNames - One or more permission names to check
- * @returns {Function} Middleware function
  */
 const checkPermission = (...permissionNames) => {
   return async (req, res, next) => {
@@ -91,7 +85,6 @@ const checkPermission = (...permissionNames) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // Ensure role is populated from roleId if not already set
     if (!req.user.role && req.user.roleId) {
       await req.user.populate("roleId", "name");
       if (req.user.roleId) {
@@ -99,7 +92,6 @@ const checkPermission = (...permissionNames) => {
       }
     }
 
-    // Check if user has a role
     if (!req.user.roleId) {
       return res
         .status(403)
@@ -107,7 +99,6 @@ const checkPermission = (...permissionNames) => {
     }
 
     try {
-      // Find all permissions by their names
       const permissions = await Permission.find({
         name: { $in: permissionNames },
       });
@@ -118,10 +109,7 @@ const checkPermission = (...permissionNames) => {
         });
       }
 
-      // Get permission IDs
       const permissionIds = permissions.map((p) => p._id);
-
-      // Check if user's role has any of the required permissions (OR logic)
       const rolePermission = await RolePermission.findOne({
         roleId: req.user.roleId,
         permissionId: { $in: permissionIds },
@@ -130,9 +118,7 @@ const checkPermission = (...permissionNames) => {
       if (!rolePermission) {
         return res
           .status(403)
-          .json({
-            message: "Access denied. Insufficient permissions",
-          });
+          .json({ message: "Access denied. Insufficient permissions" });
       }
 
       next();
@@ -144,4 +130,67 @@ const checkPermission = (...permissionNames) => {
   };
 };
 
-module.exports = { protect, authorize, checkPermission };
+/**
+ * Allow access if user has role "admin" OR if user's role has any of the given permissions.
+ * Use this so: after seed, admin (role admin) can access everything; when you create
+ * permissions and assign them to roles, those roles get access too.
+ *
+ * @param {...string} permissionNames - Permission names (e.g. manage_users, manage_roles)
+ */
+const requireAdminOrPermission = (...permissionNames) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    if (!req.user.role && req.user.roleId) {
+      await req.user.populate("roleId", "name");
+      if (req.user.roleId) {
+        req.user.role = req.user.roleId.name;
+      }
+    }
+
+    // Admin role always allowed (so seed admin can do everything before permissions exist)
+    if (req.user.role === "admin") {
+      return next();
+    }
+
+    if (!req.user.roleId) {
+      return res
+        .status(403)
+        .json({ message: "Access denied. User has no role assigned" });
+    }
+
+    try {
+      const permissions = await Permission.find({
+        name: { $in: permissionNames },
+      });
+
+      if (permissions.length === 0) {
+        return res.status(403).json({
+          message: "Access denied. Invalid permission(s) specified",
+        });
+      }
+
+      const permissionIds = permissions.map((p) => p._id);
+      const rolePermission = await RolePermission.findOne({
+        roleId: req.user.roleId,
+        permissionId: { $in: permissionIds },
+      });
+
+      if (!rolePermission) {
+        return res
+          .status(403)
+          .json({ message: "Access denied. Insufficient permissions" });
+      }
+
+      next();
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ message: "Server error", error: error.message });
+    }
+  };
+};
+
+module.exports = { protect, authorize, checkPermission, requireAdminOrPermission };

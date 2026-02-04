@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../constants/api_constants.dart';
 import '../models/business.dart';
 
@@ -117,7 +118,8 @@ class BusinessService {
     }
   }
 
-  // POST /api/business - Create business (sellers/owners can create)
+  // POST /api/business - Create business (sellers/owners can create).
+  // When imageFiles is provided, sends multipart/form-data and uploads images to Cloudinary via backend.
   Future<Map<String, dynamic>> createBusiness(
     String token, {
     required String name,
@@ -129,9 +131,45 @@ class BusinessService {
     String? category,
     double? askingPrice,
     String? location,
-    List<String>? imagePaths, // For file uploads, you'll need to use FormData
+    List<XFile>? imageFiles,
   }) async {
     try {
+      final hasImages = imageFiles != null && imageFiles.isNotEmpty;
+      final options = _getAuthOptions(token);
+
+      if (hasImages) {
+        final formData = FormData();
+        formData.fields.addAll([
+          MapEntry('name', name),
+          MapEntry('address', address),
+          MapEntry('phone', phone),
+          MapEntry('email', email),
+        ]);
+        if (website != null && website.isNotEmpty) formData.fields.add(MapEntry('website', website));
+        if (description != null) formData.fields.add(MapEntry('description', description));
+        if (category != null) formData.fields.add(MapEntry('category', category));
+        if (askingPrice != null) formData.fields.add(MapEntry('askingPrice', askingPrice.toString()));
+        if (location != null) formData.fields.add(MapEntry('location', location));
+
+        for (var i = 0; i < imageFiles.length; i++) {
+          final x = imageFiles[i];
+          final path = x.path;
+          final name = x.name;
+          formData.files.add(MapEntry(
+            'images',
+            await MultipartFile.fromFile(path, filename: name.isNotEmpty ? name : 'image_$i.jpg'),
+          ));
+        }
+
+        final response = await _dio.post(
+          '${ApiConstants.baseUrl}${ApiConstants.businesses}',
+          data: formData,
+          options: options,
+        );
+        if (response.statusCode == 201) return response.data;
+        throw Exception('Failed to create business: ${response.statusMessage}');
+      }
+
       final data = <String, dynamic>{
         'name': name,
         'address': address,
@@ -144,25 +182,17 @@ class BusinessService {
       if (askingPrice != null) data['askingPrice'] = askingPrice;
       if (location != null) data['location'] = location;
 
-      // Note: For file uploads, you'll need to use FormData with multipart/form-data
-      // This is a simplified version. For actual file uploads, use:
-      // FormData formData = FormData.fromMap({...});
-      // formData.files.addAll([...]);
-
       final response = await _dio.post(
         '${ApiConstants.baseUrl}${ApiConstants.businesses}',
         data: data,
-        options: _getAuthOptions(token),
+        options: options,
       );
-
-      if (response.statusCode == 201) {
-        return response.data;
-      } else {
-        throw Exception('Failed to create business: ${response.statusMessage}');
-      }
+      if (response.statusCode == 201) return response.data;
+      throw Exception('Failed to create business: ${response.statusMessage}');
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to create business');
+        final msg = e.response?.data is Map ? (e.response?.data['message'] ?? e.response?.data['error']) : null;
+        throw Exception(msg?.toString() ?? 'Failed to create business');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -170,7 +200,8 @@ class BusinessService {
     }
   }
 
-  // PUT /api/business/:id - Update business (only business owner or admin can access)
+  // PUT /api/business/:id - Update business (only business owner or admin can access).
+  // When imageFiles is provided, sends multipart/form-data; new images are uploaded to Cloudinary and appended.
   Future<Map<String, dynamic>> updateBusiness(
     String token,
     String id, {
@@ -183,9 +214,41 @@ class BusinessService {
     String? category,
     double? askingPrice,
     String? location,
-    List<String>? imagePaths, // For file uploads
+    List<XFile>? imageFiles,
   }) async {
     try {
+      final hasImages = imageFiles != null && imageFiles.isNotEmpty;
+      final options = _getAuthOptions(token);
+
+      if (hasImages) {
+        final formData = FormData();
+        if (name != null) formData.fields.add(MapEntry('name', name));
+        if (address != null) formData.fields.add(MapEntry('address', address));
+        if (phone != null) formData.fields.add(MapEntry('phone', phone));
+        if (email != null) formData.fields.add(MapEntry('email', email));
+        if (website != null) formData.fields.add(MapEntry('website', website));
+        if (description != null) formData.fields.add(MapEntry('description', description));
+        if (category != null) formData.fields.add(MapEntry('category', category));
+        if (askingPrice != null) formData.fields.add(MapEntry('askingPrice', askingPrice.toString()));
+        if (location != null) formData.fields.add(MapEntry('location', location));
+
+        for (var i = 0; i < imageFiles.length; i++) {
+          final x = imageFiles[i];
+          formData.files.add(MapEntry(
+            'images',
+            await MultipartFile.fromFile(x.path, filename: x.name.isNotEmpty ? x.name : 'image_$i.jpg'),
+          ));
+        }
+
+        final response = await _dio.put(
+          '${ApiConstants.baseUrl}${ApiConstants.businesses}/$id',
+          data: formData,
+          options: options,
+        );
+        if (response.statusCode == 200) return response.data;
+        throw Exception('Failed to update business: ${response.statusMessage}');
+      }
+
       final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (address != null) data['address'] = address;
@@ -197,22 +260,17 @@ class BusinessService {
       if (askingPrice != null) data['askingPrice'] = askingPrice;
       if (location != null) data['location'] = location;
 
-      // Note: For file uploads, use FormData with multipart/form-data
-
       final response = await _dio.put(
         '${ApiConstants.baseUrl}${ApiConstants.businesses}/$id',
         data: data,
-        options: _getAuthOptions(token),
+        options: options,
       );
-
-      if (response.statusCode == 200) {
-        return response.data;
-      } else {
-        throw Exception('Failed to update business: ${response.statusMessage}');
-      }
+      if (response.statusCode == 200) return response.data;
+      throw Exception('Failed to update business: ${response.statusMessage}');
     } on DioException catch (e) {
       if (e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Failed to update business');
+        final msg = e.response?.data is Map ? (e.response?.data['message'] ?? e.response?.data['error']) : null;
+        throw Exception(msg?.toString() ?? 'Failed to update business');
       }
       throw Exception('Network error: ${e.message}');
     } catch (e) {

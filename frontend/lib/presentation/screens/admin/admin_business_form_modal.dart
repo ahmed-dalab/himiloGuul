@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../config/app_colors.dart';
 import '../../../core/services/business_service.dart';
@@ -35,6 +38,8 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
   final _location = TextEditingController();
   String? _category;
   bool _saving = false;
+  final List<XFile> _newImages = [];
+  static const int _maxImages = 10;
 
   static const _categories = [
     'restaurant',
@@ -78,6 +83,69 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
     super.dispose();
   }
 
+  List<Map<String, dynamic>> get _existingImages {
+    final i = widget.initial;
+    if (i == null) return [];
+    final imgs = i['images'];
+    if (imgs is! List) return [];
+    return imgs
+        .where((e) => e is Map && (e['url'] != null || e['publicId'] != null))
+        .cast<Map<String, dynamic>>()
+        .toList();
+  }
+
+  Future<void> _pickImages() async {
+    if (!mounted) return;
+    final current = _existingImages.length + _newImages.length;
+    if (current >= _maxImages) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Maximum $_maxImages images allowed')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Opening gallery...'), duration: Duration(seconds: 1)),
+    );
+
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickMultiImage(imageQuality: 85);
+      if (!mounted) return;
+      if (picked.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No images selected')),
+        );
+        return;
+      }
+      final remaining = _maxImages - current;
+      final toAdd = picked.length > remaining ? picked.take(remaining).toList() : picked;
+      setState(() => _newImages.addAll(toAdd));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Added ${toAdd.length} image(s)')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open gallery: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  void _removeNewImage(int index) {
+    setState(() => _newImages.removeAt(index));
+  }
+
+  void _reorderNewImages(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final item = _newImages.removeAt(oldIndex);
+      _newImages.insert(newIndex, item);
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
@@ -85,6 +153,7 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
     if (token == null) return;
     setState(() => _saving = true);
     final businessService = BusinessService();
+    final imageFiles = _newImages.isEmpty ? null : _newImages;
     try {
       if (widget.isEdit && widget.businessId != null) {
         await businessService.updateBusiness(
@@ -99,6 +168,7 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
           category: _category,
           askingPrice: double.tryParse(_askingPrice.text.trim()),
           location: _location.text.trim().isEmpty ? null : _location.text.trim(),
+          imageFiles: imageFiles,
         );
       } else {
         await businessService.createBusiness(
@@ -112,6 +182,7 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
           category: _category,
           askingPrice: double.tryParse(_askingPrice.text.trim()),
           location: _location.text.trim().isEmpty ? null : _location.text.trim(),
+          imageFiles: imageFiles,
         );
       }
       if (mounted) {
@@ -158,6 +229,12 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
+              // Images section OUTSIDE ListView so the Add button tap is never stolen by scroll
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildImagesSection(),
+              ),
+              const SizedBox(height: 8),
               Flexible(
                 child: ListView(
                   controller: scrollController,
@@ -233,6 +310,177 @@ class _AdminBusinessFormModalState extends State<AdminBusinessFormModal> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildImagesSection() {
+    final existing = _existingImages;
+    final total = existing.length + _newImages.length;
+    final canAdd = total < _maxImages;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Business images',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Text(
+                '$total / $_maxImages',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Use ElevatedButton so the tap is always received (not stolen by ListView scroll)
+          if (canAdd)
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: _pickImages,
+                icon: const Icon(Icons.add_photo_alternate, size: 24),
+                label: const Text('Tap to add photos'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue.withOpacity(0.12),
+                  foregroundColor: AppColors.primaryBlue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: AppColors.primaryBlue, width: 2),
+                  ),
+                ),
+              ),
+            ),
+          if (canAdd) const SizedBox(height: 12),
+          // Drop zone hint when we have room (for drag-and-drop on supported platforms)
+          if (canAdd)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Or drag images here to add',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ),
+          // Existing images (horizontal)
+          if (existing.isNotEmpty) ...[
+            const Text('Uploaded', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 88,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: existing.length,
+                itemBuilder: (context, i) {
+                  final url = existing[i]['url'] as String? ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 88,
+                        height: 88,
+                        child: url.isNotEmpty
+                            ? Image.network(url, fit: BoxFit.cover)
+                            : ColoredBox(
+                                color: Colors.grey.shade300,
+                                child: Icon(Icons.broken_image, color: Colors.grey.shade600),
+                              ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // New images: reorderable list (drag to reorder)
+          if (_newImages.isNotEmpty) ...[
+            Text(
+              'New (drag to reorder)',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 96,
+              child: ReorderableListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _newImages.length,
+                onReorder: _reorderNewImages,
+                proxyDecorator: (child, index, animation) {
+                  return Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: child,
+                  );
+                },
+                itemBuilder: (context, index) {
+                  final x = _newImages[index];
+                  final path = x.path;
+                  final file = path.isNotEmpty ? File(path) : null;
+                  return Padding(
+                    key: ValueKey('${x.path}_$index'),
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            width: 88,
+                            height: 88,
+                            child: file != null && file.existsSync()
+                                ? Image.file(file, fit: BoxFit.cover)
+                                : ColoredBox(
+                                    color: Colors.grey.shade300,
+                                    child: Icon(Icons.image, color: Colors.grey.shade600),
+                                  ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeNewImage(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Icon(Icons.drag_handle, size: 20, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

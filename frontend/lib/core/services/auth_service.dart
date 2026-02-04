@@ -92,16 +92,21 @@ class AuthService {
   }
 
   // Fetch Menus
+  // When token is present, calls /menus/me to get permission-filtered menus for the current user.
+  // When no token, calls /menus (all menus, e.g. for public).
   Future<List<Map<String, dynamic>>> fetchMenus({String? token, String? parentId}) async {
     try {
+      final String url = token != null
+          ? '${ApiConstants.baseUrl}${ApiConstants.menusMe}'
+          : '${ApiConstants.baseUrl}${ApiConstants.menus}';
       final queryParams = <String, dynamic>{};
       if (parentId != null) {
         queryParams['parentId'] = parentId;
       }
 
       final response = await _dio.get(
-        '${ApiConstants.baseUrl}${ApiConstants.menus}',
-        queryParameters: queryParams,
+        url,
+        queryParameters: queryParams.isEmpty ? null : queryParams,
         options: token != null ? _getAuthOptions(token) : null,
       );
 
