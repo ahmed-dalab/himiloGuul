@@ -12,3 +12,4 @@ pids
 lib-cov
 coverage
 .nyc_output 
+.env
