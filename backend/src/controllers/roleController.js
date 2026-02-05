@@ -160,6 +160,7 @@ const deleteRole = async (req, res) => {
 
     // Check if any users are using this role
     const User = require("../models/User");
+    const RolePermission = require("../models/RolePermission");
     const usersWithRole = await User.countDocuments({ roleId: id });
 
     if (usersWithRole > 0) {
@@ -169,6 +170,8 @@ const deleteRole = async (req, res) => {
       });
     }
 
+    // Remove all role-permission assignments for this role
+    await RolePermission.deleteMany({ roleId: id });
     await Role.findByIdAndDelete(id);
 
     res.status(200).json({

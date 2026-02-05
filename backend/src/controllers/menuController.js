@@ -1,13 +1,11 @@
 const Menu = require("../models/Menu");
 const RolePermission = require("../models/RolePermission");
 const Permission = require("../models/Permission");
-const MenuPermission = require("../models/MenuPermission");
 
 /**
  * GET /api/menus/me - Get menus for the current user (permission-driven).
- * Returns only menus that the user has at least one permission for (via their role).
- * Uses MenuPermission (permission → menu links); falls back to Permission.menuId if no MenuPermission entries.
- * No role-based hardcoding: admin sees only menus they have permissions for.
+ * Each permission has one menuId. User's role has permissions via RolePermission.
+ * Returns only menus that the user has at least one permission for (Permission.menuId).
  */
 const getMenusForMe = async (req, res) => {
   try {
@@ -35,17 +33,8 @@ const getMenusForMe = async (req, res) => {
       });
     }
 
-    let menuIds = [];
-    const menuPermissions = await MenuPermission.find({
-      permissionId: { $in: permissionIds },
-    }).select("menuId");
-    if (menuPermissions.length > 0) {
-      menuIds = [...new Set(menuPermissions.map((mp) => mp.menuId.toString()))];
-    } else {
-      const permissions = await Permission.find({ _id: { $in: permissionIds } }).select("menuId");
-      const withMenu = permissions.filter((p) => p.menuId);
-      menuIds = [...new Set(withMenu.map((p) => p.menuId.toString()))];
-    }
+    const permissions = await Permission.find({ _id: { $in: permissionIds } }).select("menuId");
+    const menuIds = [...new Set(permissions.filter((p) => p.menuId).map((p) => p.menuId.toString()))];
 
     if (menuIds.length === 0) {
       return res.status(200).json({
@@ -272,6 +261,16 @@ const deleteMenu = async (req, res) => {
         message:
           "Cannot delete menu with child menus. Please delete or reassign child menus first.",
         childrenCount: children.length,
+      });
+    }
+
+    // Check if any permission references this menu (each permission has one menuId)
+    const permissionsCount = await Permission.countDocuments({ menuId: id });
+    if (permissionsCount > 0) {
+      return res.status(400).json({
+        message:
+          "Cannot delete menu. Some permissions are linked to this menu. Reassign or delete those permissions first.",
+        permissionsCount,
       });
     }
 

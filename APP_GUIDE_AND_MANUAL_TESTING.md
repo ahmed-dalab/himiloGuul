@@ -22,8 +22,8 @@ This document explains how the app works and how to manually test it from the Fl
 
 - Each user has **one role** (admin, seller, or buyer).
 - **Roles** have **permissions** (assigned via Role Permissions in admin).
-- **Menus** are not assigned to users or roles directly. Each menu is linked to one or more **permissions** (MenuPermission).
-- A user **sees a menu** only if their role has at least one permission linked to that menu.
+- **Menus** are not assigned to users or roles directly. Each **permission** has exactly one **menu** (Permission.menuId).
+- **RolePermission** links a role to permissions. A user **sees a menu** only if their role has at least one permission whose menu is that menu.
 - Menus the user does not have permission for are **hidden** (not disabled).
 - Backend APIs still enforce permission checks regardless of what menus are shown.
 
@@ -34,8 +34,8 @@ This document explains how the app works and how to manually test it from the Fl
 | Seller | Home, My Business, Contacts, Profile (paths under `/seller/`) |
 | Admin  | Home, Business, Users, Profile (bottom nav) + Roles, Permissions, Role Permissions, Menus, Settings (drawer) – paths under `/admin` |
 
-- **Seller** sees only seller-path menus because their role has permissions like `view_home`, `view_business`, `view_contacts`, `view_profile`.
-- **Admin** sees admin-path menus because their role has all view_* and manage_* permissions.
+- **Seller** sees only seller-path menus because their role has permissions like `view_seller_dashboard`, `view_seller_my_businesses`, `view_seller_contacts`, `view_seller_profile`.
+- **Admin** sees admin-path menus because their role has all view_admin_* and manage_* permissions.
 
 ### 1.4 Main flows
 
@@ -54,7 +54,7 @@ This document explains how the app works and how to manually test it from the Fl
    - Copy `.env.example` to `.env` (if needed) and set `MONGO_URI` and `JWT_SECRET`.
    - Install dependencies: `npm install`
    - Start server: `npm start` (default port 3000).
-3. **Seed RBAC data** (creates roles, menus, permissions, menu–permission links, role–permission assignments, and admin user):
+3. **Seed RBAC data** (creates roles, menus, permissions with menuId, role–permission assignments, and admin/seller users):
    ```bash
    cd backend
    node scripts/seed-rbac.js
@@ -170,7 +170,7 @@ Tap each tab and confirm the correct screen loads and no admin-only content is v
 ### 4.3 Seller – No admin menus
 
 1. Open the **drawer**.
-2. **Expected:** No “Users”, “Roles”, “Permissions”, “Role Permissions”, “Menus”, or “Settings” (these are admin-path menus and require admin permissions). Seller only sees menus they have permission for (e.g. view_home, view_business, view_contacts, view_profile).
+2. **Expected:** No “Users”, “Roles”, “Permissions”, “Role Permissions”, “Menus”, or “Settings” (these are admin-path menus and require admin permissions). Seller only sees menus they have permission for (view_seller_dashboard, view_seller_my_businesses, view_seller_contacts, view_seller_profile).
 
 ### 4.4 Seller – Logout
 
@@ -198,10 +198,10 @@ Tap each tab and confirm the correct screen loads and no admin-only content is v
   - Ensure RBAC seed was run (`node scripts/seed-rbac.js`) so the user’s role has permissions and MenuPermission links exist.
 
 - **Admin sees no management menus**  
-  - Run `seed-rbac.js` so the admin role has all view_* and manage_* permissions and MenuPermission links for admin menus.
+  - Run `seed-rbac.js` so the admin role has all view_admin_* and manage_* permissions (each permission has a menuId).
 
 - **Seller sees admin menus**  
-  - Seller role should only have view_* permissions; admin menus are linked to manage_* permissions. Check Role Permissions and MenuPermission data; ensure frontend filters menus by path prefix (`/seller` for seller layout).
+  - Seller role should only have view_seller_* permissions; admin has view_admin_* and manage_*. Check Role Permissions; ensure frontend filters menus by path prefix (`/seller` for seller layout).
 
 - **“Network error” or no response**  
   - Confirm backend URL in `api_constants.dart` (e.g. `10.0.2.2` for Android emulator, correct IP for device).  

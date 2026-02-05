@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const {
+  createUser,
   getAllUsers,
   getUserById,
   getUserProfile,
@@ -14,11 +15,17 @@ const router = Router();
 // Protected routes (authentication required)
 // Note: /profile routes must come before /:id routes to avoid route conflicts
 
+// POST /api/users - Create user and assign role (admin only; requires manage_users)
+router.post("/", protect, requireAdminOrPermission("manage_users"), createUser);
+
 // GET /api/users/profile - Get current user profile
 router.get("/profile", protect, getUserProfile);
 
 // PUT /api/users/profile - Update own profile
 router.put("/profile", protect, updateUserProfile);
+
+// GET /api/users - List users (admin only; must be before /:id)
+router.get("/", protect, requireAdminOrPermission("manage_users"), getAllUsers);
 
 // GET /api/users/:id - Get user public info
 router.get("/:id", getUserById);
@@ -28,8 +35,5 @@ router.put("/:id", protect, updateUser);
 
 // DELETE /api/users/:id - Delete user (admin and the user himself can access)
 router.delete("/:id", protect, deleteUser);
-
-// GET /api/users - Get all users: admin OR permission "manage_users"
-router.get("/", protect, requireAdminOrPermission("manage_users"), getAllUsers);
 
 module.exports = router;

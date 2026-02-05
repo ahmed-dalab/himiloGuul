@@ -201,6 +201,25 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     return '—';
   }
 
+  /// Get menu display (name or path) for a role-permission row. Uses _permissions list when permissionId.menuId is not populated.
+  String _getPermissionMenuDisplay(dynamic rp) {
+    final perm = rp['permissionId'];
+    if (perm is Map && perm['menuId'] is Map) {
+      final menu = perm['menuId'] as Map;
+      return menu['path']?.toString() ?? menu['name']?.toString() ?? '—';
+    }
+    final permId = _getId(perm);
+    if (permId.isEmpty) return '—';
+    for (final p in _permissions) {
+      if (p is! Map<String, dynamic>) continue;
+      if (_getId(p) != permId) continue;
+      final menu = p['menuId'];
+      if (menu is Map) return menu['path']?.toString() ?? menu['name']?.toString() ?? '—';
+      return '—';
+    }
+    return '—';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -264,6 +283,7 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
                           final permissionId = _getId(rp['permissionId']);
                           final roleName = _getRoleName(rp);
                           final permissionName = _getPermissionName(rp);
+                          final menuDisplay = _getPermissionMenuDisplay(rp);
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             elevation: 0,
@@ -293,7 +313,9 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
                                 ),
                               ),
                               subtitle: Text(
-                                permissionName,
+                                menuDisplay.isNotEmpty && menuDisplay != '—'
+                                    ? '$permissionName • Menu: $menuDisplay'
+                                    : permissionName,
                                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                               ),
                               trailing: IconButton(
@@ -349,6 +371,20 @@ class _AssignRolePermissionModalState extends State<_AssignRolePermissionModal> 
     return '—';
   }
 
+  /// Permission display: "name (menu path)" so admins see which menu the permission belongs to.
+  static String _getPermissionDisplayWithMenu(dynamic p) {
+    if (p is! Map) return _getName(p);
+    final name = p['name']?.toString() ?? '—';
+    final menu = p['menuId'];
+    if (menu is Map) {
+      final path = menu['path']?.toString();
+      final menuName = menu['name']?.toString();
+      final menuLabel = path ?? menuName ?? '';
+      if (menuLabel.isNotEmpty) return '$name ($menuLabel)';
+    }
+    return name;
+  }
+
   bool _isAlreadyAssigned(String roleId, String permissionId) {
     for (final rp in widget.existingAssignments) {
       if (rp is! Map<String, dynamic>) continue;
@@ -401,12 +437,15 @@ class _AssignRolePermissionModalState extends State<_AssignRolePermissionModal> 
               DropdownButtonFormField<String>(
                 value: _selectedPermissionId,
                 decoration: const InputDecoration(
-                  labelText: 'Permission',
+                  labelText: 'Permission (each belongs to one menu)',
                   border: OutlineInputBorder(),
                 ),
                 items: widget.permissions.map((p) {
                   final id = _getId(p);
-                  return DropdownMenuItem(value: id, child: Text(_getName(p)));
+                  return DropdownMenuItem(
+                    value: id,
+                    child: Text(_AssignRolePermissionModalState._getPermissionDisplayWithMenu(p)),
+                  );
                 }).toList(),
                 onChanged: (v) => setState(() => _selectedPermissionId = v),
               ),

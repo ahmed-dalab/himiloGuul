@@ -19,6 +19,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   final MenuService _menuService = MenuService();
   List<dynamic> _permissions = [];
   List<dynamic> _menus = [];
+  String? _filterMenuId; // Filter by menu (each permission has one menuId)
   bool _loading = true;
   String? _error;
 
@@ -39,8 +40,21 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       _error = null;
     });
     try {
-      // Load permissions (required for list)
-      final permRes = await _permissionService.getAllPermissions(token, limit: 100);
+      // Load menus first (for filter dropdown and create/edit)
+      List<dynamic> menuList = [];
+      try {
+        final menuRes = await _menuService.getAllMenus(token: token);
+        menuList = (menuRes['menus'] as List<dynamic>?) ?? [];
+        if (mounted) setState(() => _menus = menuList);
+      } catch (_) {
+        if (mounted) setState(() => _menus = []);
+      }
+      // Load permissions (optional filter by menuId - backend: each permission has one menu)
+      final permRes = await _permissionService.getAllPermissions(
+        token,
+        limit: 100,
+        menuId: _filterMenuId,
+      );
       final permList = (permRes['data'] as List<dynamic>?) ?? [];
       if (!mounted) return;
       setState(() {
@@ -48,14 +62,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         _loading = false;
         _error = null;
       });
-      // Load menus for create/edit dropdown (best-effort)
-      try {
-        final menuRes = await _menuService.getAllMenus(token: token);
-        final menuList = (menuRes['menus'] as List<dynamic>?) ?? [];
-        if (mounted) setState(() => _menus = menuList);
-      } catch (_) {
-        if (mounted) setState(() => _menus = []);
-      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -163,33 +169,73 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         foregroundColor: AppColors.darkGray,
         elevation: 0,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade700),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Filter by menu (each permission belongs to one menu)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: DropdownButtonFormField<String?>(
+              value: _filterMenuId,
+              decoration: const InputDecoration(
+                labelText: 'Filter by menu',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('All menus'),
+                ),
+                ..._menus.map<DropdownMenuItem<String?>>((m) {
+                  final id = m['_id'] as String? ?? m['id'] as String? ?? '';
+                  final name = m['name'] as String? ?? m['path'] as String? ?? id;
+                  return DropdownMenuItem<String?>(
+                    value: id.isEmpty ? null : id,
+                    child: Text(name),
+                  );
+                }).where((e) => e.value != null),
+              ],
+              onChanged: (v) {
+                setState(() {
+                  _filterMenuId = v;
+                  _loading = true;
+                });
+                _load();
+              },
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
+                            ),
+                            TextButton(onPressed: _load, child: const Text('Retry')),
+                          ],
                         ),
-                      ),
-                      TextButton(onPressed: _load, child: const Text('Retry')),
-                    ],
-                  ),
-                )
-              : _permissions.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No permissions yet. Tap + to create one.',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                    )
-                  : RefreshIndicator(
+                      )
+                    : _permissions.isEmpty
+                        ? Center(
+                            child: Text(
+                              _filterMenuId != null
+                                  ? 'No permissions for this menu.'
+                                  : 'No permissions yet. Tap + to create one.',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          )
+                        : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
@@ -252,6 +298,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreateModal,
         backgroundColor: AppColors.primaryBlue,

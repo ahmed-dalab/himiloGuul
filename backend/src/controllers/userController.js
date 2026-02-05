@@ -124,10 +124,17 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user._id);
+    const userJson = user.toJSON();
+    // Ensure frontend gets role name (roleId may be populated as { _id, name })
+    if (user.roleId && typeof user.roleId === "object" && user.roleId.name) {
+      userJson.role = user.roleId.name;
+    } else if (user.role) {
+      userJson.role = user.role;
+    }
 
     res
       .status(200)
-      .json({ message: "User logged in", token, user: user.toJSON() });
+      .json({ message: "User logged in", token, user: userJson });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -184,6 +191,60 @@ const updateUserProfile = async (req, res) => {
       user: req.user.toJSON(),
     });
   } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// POST /api/users - Create user (admin only); assign to an existing role
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({
+        message: "Name, email, password and role are required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const roleDoc = await Role.findOne({
+      name: { $regex: `^${String(role).trim()}$`, $options: "i" },
+    });
+    if (!roleDoc) {
+      return res.status(400).json({
+        message: "Role not found. Create the role first (e.g. admin, seller, buyer).",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      roleId: roleDoc._id,
+    });
+
+    await user.populate("roleId", "name");
+    if (user.roleId) user.role = user.roleId.name;
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: user.toJSON(),
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -435,6 +496,7 @@ const deleteUser = async (req, res) => {
 module.exports = {
   registerUser,
   login,
+  createUser,
   getUserProfile,
   updateUserProfile,
   getAllUsers,

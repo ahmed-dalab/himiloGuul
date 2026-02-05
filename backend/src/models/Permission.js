@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 
+/**
+ * Permission: each permission belongs to exactly one menu (menuId).
+ * A user sees a menu if their role has at least one permission whose menuId is that menu
+ * (via RolePermission: Role -> Permission).
+ */
 const permissionSchema = new mongoose.Schema(
   {
     name: {
@@ -8,11 +13,10 @@ const permissionSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
-    // Optional "primary" menu for display in admin UI. Menu visibility is driven by MenuPermission.
     menuId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Menu",
-      required: false,
+      required: true,
     },
   },
   { timestamps: true }

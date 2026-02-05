@@ -85,10 +85,14 @@ const getAllRolePermissions = async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Execute query
+    // Execute query (populate permission's menuId so frontend can show menu per permission)
     const rolePermissions = await RolePermission.find(query)
       .populate("roleId", "name")
-      .populate("permissionId", "name menuId")
+      .populate({
+        path: "permissionId",
+        select: "name menuId",
+        populate: { path: "menuId", select: "name path" },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);

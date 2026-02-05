@@ -3,18 +3,19 @@
  * Run: node scripts/seed-rbac.js
  * Requires: MONGO_URI in .env
  *
- * Rules:
- * - Users have one role. Roles have multiple permissions (via RolePermission).
- * - Menus are not assigned to users or roles. Each menu is linked to one or more permissions (via MenuPermission).
- * - A user sees a menu if and only if they have at least one permission associated with that menu.
+ * Design:
+ * - Each Permission has exactly one menu (menuId). No MenuPermission table.
+ * - RolePermission links Role to Permission (which permissions a role has).
+ * - A user sees a menu if their role has at least one permission whose menuId is that menu.
  *
  * Creates:
- * - Roles: admin, seller (if not exist)
+ * - Roles: admin, seller, buyer (if not exist)
  * - Admin user: ali@gmail.com / admin123 (if not exist)
- * - Menus: seller (Home, My Business, Contacts, Profile) + admin (Home, Business, Users, Roles, Permissions, Role Permissions, Menus, Settings)
- * - Permissions: view_home, view_business, view_contacts, view_profile, manage_users, manage_roles, manage_permissions, manage_role_permissions, manage_menus, manage_settings
- * - MenuPermission: links each permission to the relevant menu(s)
- * - RolePermission: seller gets view_*; admin gets all permissions
+ * - Seller test user: seller@example.com / seller123 (if not exist)
+ * - Buyer test user: buyer@example.com / buyer123 (if not exist)
+ * - Menus: seller + admin portal menus (by path)
+ * - Permissions: each with one menuId (view_seller_*, view_admin_*, manage_*)
+ * - RolePermission: seller gets view_seller_*; admin gets all permissions
  */
 
 require("dotenv").config();
@@ -25,23 +26,23 @@ const User = require("../src/models/User");
 const Menu = require("../src/models/Menu");
 const Permission = require("../src/models/Permission");
 const RolePermission = require("../src/models/RolePermission");
-const MenuPermission = require("../src/models/MenuPermission");
 
 const ADMIN_EMAIL = "ali@gmail.com";
 const ADMIN_PASSWORD = "admin123";
 const SELLER_EMAIL = "seller@example.com";
 const SELLER_PASSWORD = "seller123";
+const BUYER_EMAIL = "buyer@example.com";
+const BUYER_PASSWORD = "buyer123";
 const ADMIN_ROLE_NAME = "admin";
 const SELLER_ROLE_NAME = "seller";
+const BUYER_ROLE_NAME = "buyer";
 
-// All menus: seller portal + admin portal (path must be unique)
+// All menus: path must be unique
 const SEED_MENUS = [
-  // Seller portal
   { name: "Home", path: "/seller/dashboard" },
   { name: "My Business", path: "/seller/my-businesses" },
   { name: "Contacts", path: "/seller/contacts" },
   { name: "Profile", path: "/seller/profile" },
-  // Admin portal
   { name: "Home", path: "/admin" },
   { name: "Business", path: "/admin/business" },
   { name: "Users", path: "/admin/users" },
@@ -53,30 +54,37 @@ const SEED_MENUS = [
   { name: "Profile", path: "/admin/profile" },
 ];
 
-// Permission names (standardized)
-const VIEW_PERMISSIONS = ["view_home", "view_business", "view_contacts", "view_profile"];
-const MANAGE_PERMISSIONS = [
-  "manage_users",
-  "manage_roles",
-  "manage_permissions",
-  "manage_role_permissions",
-  "manage_menus",
-  "manage_settings",
-];
-
-// Permission name -> menu paths (this permission unlocks these menus)
-const PERMISSION_TO_MENU_PATHS = {
-  view_home: ["/seller/dashboard", "/admin"],
-  view_business: ["/seller/my-businesses", "/admin/business"],
-  view_contacts: ["/seller/contacts"],
-  view_profile: ["/seller/profile", "/admin/profile"],
-  manage_users: ["/admin/users"],
-  manage_roles: ["/admin/roles"],
-  manage_permissions: ["/admin/permissions"],
-  manage_role_permissions: ["/admin/role-permissions"],
-  manage_menus: ["/admin/menus"],
-  manage_settings: ["/admin/settings"],
+// Permission name -> single menu path (one permission = one menu)
+const PERMISSION_TO_MENU_PATH = {
+  // Seller portal
+  view_seller_dashboard: "/seller/dashboard",
+  view_seller_my_businesses: "/seller/my-businesses",
+  view_seller_contacts: "/seller/contacts",
+  view_seller_profile: "/seller/profile",
+  // Admin portal (view + manage; multiple permissions can point to same menu)
+  view_admin_dashboard: "/admin",
+  view_admin_business: "/admin/business",
+  view_admin_users: "/admin/users",
+  manage_users: "/admin/users",
+  view_admin_roles: "/admin/roles",
+  manage_roles: "/admin/roles",
+  view_admin_permissions: "/admin/permissions",
+  manage_permissions: "/admin/permissions",
+  view_admin_role_permissions: "/admin/role-permissions",
+  manage_role_permissions: "/admin/role-permissions",
+  view_admin_menus: "/admin/menus",
+  manage_menus: "/admin/menus",
+  view_admin_settings: "/admin/settings",
+  manage_settings: "/admin/settings",
+  view_admin_profile: "/admin/profile",
 };
+
+const SELLER_PERMISSION_NAMES = [
+  "view_seller_dashboard",
+  "view_seller_my_businesses",
+  "view_seller_contacts",
+  "view_seller_profile",
+];
 
 async function seed() {
   try {
@@ -98,6 +106,13 @@ async function seed() {
       console.log(`  ✓ Created role "${SELLER_ROLE_NAME}"`);
     } else {
       console.log(`  ✓ Role "${SELLER_ROLE_NAME}" already exists`);
+    }
+    let buyerRole = await Role.findOne({ name: BUYER_ROLE_NAME });
+    if (!buyerRole) {
+      buyerRole = await Role.create({ name: BUYER_ROLE_NAME });
+      console.log(`  ✓ Created role "${BUYER_ROLE_NAME}"`);
+    } else {
+      console.log(`  ✓ Role "${BUYER_ROLE_NAME}" already exists`);
     }
 
     // 2. Admin user
@@ -122,7 +137,7 @@ async function seed() {
       console.log(`  ✓ Created user ${ADMIN_EMAIL} (password: ${ADMIN_PASSWORD})`);
     }
 
-    // 2b. Seller test user (for manual testing)
+    // 2b. Seller test user
     console.log("\n=== Seller Test User ===");
     const existingSeller = await User.findOne({ email: SELLER_EMAIL });
     if (existingSeller) {
@@ -144,6 +159,28 @@ async function seed() {
       console.log(`  ✓ Created user ${SELLER_EMAIL} (password: ${SELLER_PASSWORD})`);
     }
 
+    // 2c. Buyer test user
+    console.log("\n=== Buyer Test User ===");
+    const existingBuyer = await User.findOne({ email: BUYER_EMAIL });
+    if (existingBuyer) {
+      if (existingBuyer.roleId?.toString() !== buyerRole._id.toString()) {
+        existingBuyer.roleId = buyerRole._id;
+        await existingBuyer.save();
+        console.log(`  ✓ Updated user role to buyer`);
+      } else {
+        console.log(`  ✓ User ${BUYER_EMAIL} already exists`);
+      }
+    } else {
+      const hashedBuyerPassword = await bcrypt.hash(BUYER_PASSWORD, 10);
+      await User.create({
+        name: "Test Buyer",
+        email: BUYER_EMAIL,
+        password: hashedBuyerPassword,
+        roleId: buyerRole._id,
+      });
+      console.log(`  ✓ Created user ${BUYER_EMAIL} (password: ${BUYER_PASSWORD})`);
+    }
+
     // 3. Menus (by path)
     console.log("\n=== Menus ===");
     const menuByPath = {};
@@ -158,49 +195,39 @@ async function seed() {
       menuByPath[menu.path] = m;
     }
 
-    // 4. Permissions (no required menuId; links via MenuPermission)
-    console.log("\n=== Permissions ===");
+    // 4. Permissions (each with one menuId)
+    console.log("\n=== Permissions (one per menu relationship) ===");
     const permissionByName = {};
-    const allPermissionNames = [...VIEW_PERMISSIONS, ...MANAGE_PERMISSIONS];
-    for (const name of allPermissionNames) {
+    for (const [name, path] of Object.entries(PERMISSION_TO_MENU_PATH)) {
+      const menu = menuByPath[path];
+      if (!menu) {
+        console.warn(`  ⚠ Skipping permission "${name}": menu path ${path} not found`);
+        continue;
+      }
       let p = await Permission.findOne({ name });
       if (!p) {
-        const firstPath = PERMISSION_TO_MENU_PATHS[name]?.[0];
-        const primaryMenuId = firstPath ? menuByPath[firstPath]?._id : null;
-        p = await Permission.create({ name, menuId: primaryMenuId || undefined });
-        console.log(`  ✓ Created permission "${name}"`);
+        p = await Permission.create({ name, menuId: menu._id });
+        console.log(`  ✓ Created permission "${name}" → ${path}`);
       } else {
-        console.log(`  ✓ Permission "${name}" already exists`);
+        if (p.menuId?.toString() !== menu._id.toString()) {
+          p.menuId = menu._id;
+          await p.save();
+          console.log(`  ✓ Updated permission "${name}" menuId → ${path}`);
+        } else {
+          console.log(`  ✓ Permission "${name}" already exists`);
+        }
       }
       permissionByName[name] = p;
     }
 
-    // 5. MenuPermission: link each permission to its menu(s)
-    console.log("\n=== Menu-Permission Links ===");
-    for (const [permName, paths] of Object.entries(PERMISSION_TO_MENU_PATHS)) {
-      const p = permissionByName[permName];
-      if (!p) continue;
-      for (const path of paths) {
-        const menu = menuByPath[path];
-        if (!menu) continue;
-        const exists = await MenuPermission.findOne({
-          menuId: menu._id,
-          permissionId: p._id,
-        });
-        if (!exists) {
-          await MenuPermission.create({ menuId: menu._id, permissionId: p._id });
-          console.log(`  ✓ Linked "${permName}" → "${menu.name}" (${path})`);
-        }
-      }
-    }
-
-    // 6. RolePermission: seller gets view_*; admin gets all
+    // 5. RolePermission: seller gets view_seller_*; admin gets all
     console.log("\n=== Role Permissions ===");
+    const allPermissionNames = Object.keys(PERMISSION_TO_MENU_PATH);
     for (const name of allPermissionNames) {
       const p = permissionByName[name];
       if (!p) continue;
 
-      const assignToSeller = VIEW_PERMISSIONS.includes(name);
+      const assignToSeller = SELLER_PERMISSION_NAMES.includes(name);
       const assignToAdmin = true;
 
       if (assignToSeller) {
@@ -226,9 +253,9 @@ async function seed() {
     }
 
     console.log("\n✓ RBAC seed completed successfully!");
-    console.log("\nSeller sees: Home, My Business, Contacts, Profile (permission-driven).");
-    console.log("Admin sees: all menus (permission-driven; admin has all permissions).");
-    console.log("Menus without permission are hidden. Backend APIs still enforce permission checks.");
+    console.log("\nDesign: Permission has one menuId; RolePermission links Role to Permission.");
+    console.log("Seller sees: Home, My Business, Contacts, Profile (via view_seller_* permissions).");
+    console.log("Admin sees: all menus (admin has all permissions).");
   } catch (e) {
     console.error("\n✗ Error during seeding:", e);
     process.exit(1);

@@ -15,14 +15,19 @@ const createPermission = async (req, res) => {
       });
     }
 
-    if (menuId) {
-      const menu = await Menu.findById(menuId);
-      if (!menu) {
-        return res.status(404).json({
-          success: false,
-          message: "Menu not found",
-        });
-      }
+    if (!menuId) {
+      return res.status(400).json({
+        success: false,
+        message: "menuId is required; each permission belongs to one menu",
+      });
+    }
+
+    const menu = await Menu.findById(menuId);
+    if (!menu) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu not found",
+      });
     }
 
     const existingPermission = await Permission.findOne({ name });
@@ -33,7 +38,7 @@ const createPermission = async (req, res) => {
       });
     }
 
-    const permission = await Permission.create({ name, menuId: menuId || undefined });
+    const permission = await Permission.create({ name, menuId });
 
     // Populate menu details
     await permission.populate("menuId", "name path");
@@ -148,8 +153,14 @@ const updatePermission = async (req, res) => {
       });
     }
 
-    // Verify menu exists if menuId is being updated
-    if (menuId) {
+    // menuId is required; verify menu exists if provided
+    if (menuId !== undefined) {
+      if (!menuId) {
+        return res.status(400).json({
+          success: false,
+          message: "menuId is required; each permission belongs to one menu",
+        });
+      }
       const menu = await Menu.findById(menuId);
       if (!menu) {
         return res.status(404).json({
