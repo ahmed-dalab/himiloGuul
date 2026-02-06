@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { contactsApi, type Contact } from "@/lib/api";
-import { MessageSquare, Loader2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, Loader2, Trash2, ChevronLeft, ChevronRight, Send, X } from "lucide-react";
 
 function formatDate(s?: string) {
   if (!s) return "—";
@@ -33,6 +33,9 @@ export default function InquiriesPage() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [replying, setReplying] = useState<Contact | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyLoading, setReplyLoading] = useState(false);
 
   const fetchContacts = () => {
     setLoading(true);
@@ -76,6 +79,37 @@ export default function InquiriesPage() {
       setError(e instanceof Error ? e.message : "Failed to delete");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const openReply = (c: Contact) => {
+    setError("");
+    setReplying(c);
+    setReplyText(c.reply ?? "");
+  };
+
+  const closeReply = () => {
+    setReplying(null);
+    setReplyText("");
+  };
+
+  const handleSendReply = async () => {
+    if (!replying) return;
+    const trimmed = replyText.trim();
+    if (!trimmed) {
+      setError("Reply cannot be empty");
+      return;
+    }
+    setReplyLoading(true);
+    setError("");
+    try {
+      await contactsApi.update(replying._id, { reply: trimmed, status: "responded" });
+      closeReply();
+      fetchContacts();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send reply");
+    } finally {
+      setReplyLoading(false);
     }
   };
 
@@ -159,6 +193,14 @@ export default function InquiriesPage() {
                       >
                         {c.message}
                       </p>
+                      {c.reply && (
+                        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2">
+                          <p className="text-xs font-medium text-slate-500">Your reply</p>
+                          <p className="mt-0.5 text-sm text-slate-700 line-clamp-2" title={c.reply}>
+                            {c.reply}
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <select
@@ -190,6 +232,14 @@ export default function InquiriesPage() {
                       {formatDate(c.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openReply(c)}
+                        className="mr-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                      >
+                        <Send className="h-4 w-4" aria-hidden />
+                        Reply
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(c)}
@@ -243,6 +293,80 @@ export default function InquiriesPage() {
             </div>
           )}
         </>
+      )}
+
+      {replying && (
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeReply}
+        >
+          <div
+            className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Reply to inquiry</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  To: <span className="font-medium">{replying.name}</span> ({replying.email})
+                </p>
+                {replying.businessRef && typeof replying.businessRef === "object" && (
+                  <p className="mt-1 text-sm text-slate-500">Re: {replying.businessRef.name}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={closeReply}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Buyer message</p>
+              <p className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">{replying.message}</p>
+            </div>
+
+            <label className="mb-1 block text-sm font-medium text-slate-600">Your reply</label>
+            <textarea
+              rows={4}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Write your reply…"
+            />
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeReply}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSendReply}
+                disabled={replyLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {replyLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Sending…
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" aria-hidden />
+                    Send reply
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -4,10 +4,7 @@ const { protect, requireAdminOrPermission } = require("../middlewares/authMiddle
 
 const router = Router();
 
-// GET /api/settings - Get app settings (admin or manage_settings)
 router.get("/", protect, requireAdminOrPermission("manage_settings"), getSettings);
-
-// PUT /api/settings - Update app settings (admin or manage_settings)
 router.put("/", protect, requireAdminOrPermission("manage_settings"), updateSettings);
 
 module.exports = router;

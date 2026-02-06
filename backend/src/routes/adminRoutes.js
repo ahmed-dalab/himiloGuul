@@ -8,36 +8,25 @@ const {
   banUnbanUser,
   deleteUser,
   listAllContacts,
-  deleteContact,
   getDashboardStats,
   getRecentActivity,
 } = require("../controllers/adminController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const { protect, requireAdminOrPermission } = require("../middlewares/authMiddleware");
 
 const router = Router();
 
-// All admin routes require authentication and admin role
 router.use(protect);
-router.use(authorize("admin"));
 
-// Dashboard (admin only)
-router.get("/dashboard", getDashboardStats);
-router.get("/activities", getRecentActivity);
-
-// Business management routes
-router.get("/businesses", listAllBusinesses);
-router.get("/businesses/pending", listPendingBusinesses);
-router.put("/businesses/:id/approve", approveBusiness);
-router.put("/businesses/:id/reject", rejectBusiness);
-
-// User management routes
-router.get("/users", listAllUsers);
-router.put("/users/:id/ban", banUnbanUser);
-router.delete("/users/:id", deleteUser);
-
-// Contact management routes
-router.get("/contacts", listAllContacts);
-router.delete("/contacts/:id", deleteContact);
+router.get("/dashboard", requireAdminOrPermission("view_admin_dashboard"), getDashboardStats);
+router.get("/activities", requireAdminOrPermission("view_admin_activities"), getRecentActivity);
+router.get("/businesses", requireAdminOrPermission("view_admin_business"), listAllBusinesses);
+router.get("/businesses/pending", requireAdminOrPermission("view_admin_business"), listPendingBusinesses);
+router.put("/businesses/:id/approve", requireAdminOrPermission("manage_business_approval"), approveBusiness);
+router.put("/businesses/:id/reject", requireAdminOrPermission("manage_business_approval"), rejectBusiness);
+router.get("/users", requireAdminOrPermission("view_admin_users"), listAllUsers);
+router.put("/users/:id/ban", requireAdminOrPermission("manage_users"), banUnbanUser);
+router.delete("/users/:id", requireAdminOrPermission("manage_users"), deleteUser);
+router.get("/contacts", requireAdminOrPermission("manage_contacts"), listAllContacts);
 
 module.exports = router;
 

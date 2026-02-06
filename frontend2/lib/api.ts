@@ -138,8 +138,20 @@ export const businessesApi = {
     }),
 };
 
-// Contacts (seller/buyer: my contacts, get, update status, delete)
+// Contacts (seller/buyer: my contacts, create, get, update status, delete)
 export const contactsApi = {
+  create: (body: {
+    sellerRef: string;
+    businessRef: string;
+    name: string;
+    email: string;
+    phone?: string;
+    message: string;
+  }) =>
+    api<{ success: boolean; data: Contact }>("/contacts", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   myList: (params?: {
     page?: number;
     limit?: number;
@@ -155,7 +167,7 @@ export const contactsApi = {
     }>("/contacts/my", { params: params as Record<string, string | number> }),
   get: (id: string) =>
     api<{ success: boolean; data: Contact }>(`/contacts/${id}`),
-  update: (id: string, body: { status?: string; message?: string }) =>
+  update: (id: string, body: { status?: string; message?: string; reply?: string }) =>
     api<{ success: boolean; data: Contact }>(`/contacts/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
@@ -451,6 +463,8 @@ export type Contact = {
   email: string;
   phone?: string;
   message: string;
+  reply?: string | null;
+  repliedAt?: string;
   status?: string;
   buyerRef?: { _id: string; name: string; email?: string; phone?: string };
   sellerRef?: { _id: string; name: string; email?: string; phone?: string };

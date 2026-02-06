@@ -9,42 +9,21 @@ const {
   approveBusiness,
   markBusinessAsSold,
 } = require("../controllers/businessController");
-const { authorize, protect } = require("../middlewares/authMiddleware");
+const { protect, requirePermission, requireAdminOrPermission, requireSellerOrPermission } = require("../middlewares/authMiddleware");
 const { handleMultipleUpload } = require("../middlewares/uploadMiddleware");
 
 const router = Router();
 
-// Browse businesses (public endpoint - no auth required)
+// Public (no auth)
 router.get("/", browseBusinesses);
-// Get my businesses (seller/owner only) - must be before /:id
-router.get("/my", protect, authorize("seller", "admin"), getMyBusinesses);
-// Business by id: public for approved; owner/admin for any status
+
+router.get("/my", protect, requireSellerOrPermission("view_seller_my_businesses"), getMyBusinesses);
+
 router.get("/:id", getBusinessById);
-
-// Approve business (admin only)
-router.put("/:id/approve", protect, authorize("admin"), approveBusiness);
-// Mark as sold (owner or admin)
-router.put("/:id/sold", protect, authorize("seller", "admin"), markBusinessAsSold);
-
-// create business (sellers/owners can create)
-router.post(
-  "/",
-  protect,
-  authorize("seller", "admin"),
-  handleMultipleUpload,
-  createBusiness,
-);
-
-// update business (only business owner or admin can access)
-router.put(
-  "/:id",
-  protect,
-  authorize("seller", "admin"),
-  handleMultipleUpload,
-  updateBusiness,
-);
-
-// delete business (only admin and the business owner can access)
-router.delete("/:id", protect, authorize("seller", "admin"), deleteBusiness);
+router.put("/:id/approve", protect, requireAdminOrPermission("manage_business_approval"), approveBusiness);
+router.put("/:id/sold", protect, requireSellerOrPermission("mark_business_sold"), markBusinessAsSold);
+router.post("/", protect, requireSellerOrPermission("create_business"), handleMultipleUpload, createBusiness);
+router.put("/:id", protect, requireSellerOrPermission("update_business"), handleMultipleUpload, updateBusiness);
+router.delete("/:id", protect, requireSellerOrPermission("delete_business"), deleteBusiness);
 
 module.exports = router;

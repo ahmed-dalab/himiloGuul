@@ -7,6 +7,8 @@ import { useEffect } from "react";
 
 const NAV_ALL = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/", label: "Browse businesses", buyerOnly: true },
+  { href: "/dashboard/my-inquiries", label: "My inquiries", buyerOnly: true },
   { href: "/dashboard/roles", label: "Roles", adminOnly: true },
   { href: "/dashboard/users", label: "Users", adminOnly: true },
   { href: "/dashboard/menus", label: "Menus", adminOnly: true },
@@ -21,9 +23,11 @@ const NAV_ALL = [
 function getNav(role: string | undefined) {
   const isAdmin = role === "admin";
   const isSeller = role === "seller";
+  const isBuyer = role === "buyer";
   return NAV_ALL.filter((item) => {
     if ("adminOnly" in item && item.adminOnly) return isAdmin;
     if ("sellerOnly" in item && item.sellerOnly) return isSeller;
+    if ("buyerOnly" in item && item.buyerOnly) return isBuyer;
     return true;
   });
 }

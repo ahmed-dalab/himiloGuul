@@ -91,7 +91,7 @@ backend/
 │   │   ├── rolePermissionRoutes.js
 │   │   └── settingRoutes.js
 │   ├── middlewares/
-│   │   ├── authMiddleware.js         # protect, authorize, requireAdminOrPermission
+│   │   ├── authMiddleware.js         # protect, requirePermission, requireSelfOrPermission
 │   │   └── uploadMiddleware.js       # Multer wrappers for single/multiple images
 │   └── lib/
 │       └── cloudinary.js             # Cloudinary v2 config
@@ -239,10 +239,12 @@ All models use **timestamps** (`createdAt`, `updatedAt`) unless noted.
 
 ### Auth (`src/middlewares/authMiddleware.js`)
 
-- **`protect`**: Reads `Authorization: Bearer <token>`, verifies JWT with `JWT_SECRET`, loads user (with `roleId` populated as `name`), sets `req.user`. Rejects if no token, invalid/expired token, user not found, or user banned.
-- **`authorize(...roles)`**: After `protect`, allows only if `req.user.role` is in the given list (e.g. `authorize("admin", "seller")`).
-- **`checkPermission(...permissionNames)`**: Allows only if the user’s role has at least one of the given permissions via RolePermission.
-- **`requireAdminOrPermission(...permissionNames)`**: Allows if user is **admin** **or** their role has any of the given permissions. Used for routes that admin can always access and other roles can access with a specific permission (e.g. `manage_users`).
+- **`protect`**: Reads `Authorization: Bearer <token>`, verifies JWT with `JWT_SECRET`, loads user (with `roleId` populated as `name`), and loads the user’s **permission names** from the DB (RolePermission → Permission) into **`req.user.permissions`**. Sets `req.user`. Rejects if no token, invalid/expired token, user not found, or user banned.
+- **`authorize(...roles)`**: After `protect`, allows only if `req.user.role` is in the given list (e.g. `authorize("admin", "seller")`). (Some routes may still use role-based checks, but the recommended approach is permission-based using `requirePermission`.)
+- **`checkPermission(...permissionNames)`**: Allows only if the user’s role has at least one of the given permissions (uses `req.user.permissions` or DB).
+- **`requireAdminOrPermission(...permissionNames)`**: Allows if user is **admin** **or** their role has any of the given permissions.
+- **`requirePermission(...permissionNames)`**: Allows if `req.user.permissions` includes any of the given names.
+- **`requireSelfOrPermission(permissionName, paramName)`**: Allows if the user is acting on themselves (e.g. `req.params.id === req.user._id`), otherwise requires the given permission.
 
 ### Upload (`src/middlewares/uploadMiddleware.js`)
 
@@ -262,64 +264,66 @@ Multer is configured in `imageController.js`: memory storage, image-only filter,
 | POST   | /login      | No    | Login; returns token + user |
 | POST   | /register   | No    | Register; body: name, email, password, role (role name) |
 
+**Protected routes** use **`protect`** and **permission middleware** (e.g. `requirePermission("manage_users")`, `requireSelfOrPermission("manage_users")`). The middleware checks `req.user.permissions` (loaded by `protect` from RolePermission → Permission).
+
 ### Users (`/api/users`)
 
-| Method | Path      | Auth / Permission        | Description              |
-|--------|-----------|---------------------------|--------------------------|
-| POST   | /         | protect, manage_users     | Create user (admin)      |
-| GET    | /profile  | protect                   | Current user profile     |
-| PUT    | /profile  | protect                   | Update own profile       |
-| GET    | /         | protect, manage_users     | List users (pagination, filters) |
-| GET    | /:id      | No                        | Get user by ID (public)  |
-| PUT    | /:id      | protect (self or admin)   | Update user              |
-| DELETE | /:id      | protect (self or admin)   | Delete user              |
+| Method | Path      | Auth                    | Required permission (in DB) | Description              |
+|--------|-----------|--------------------------|-----------------------------|--------------------------|
+| POST   | /         | protect, requirePermission      | manage_users        | Create user              |
+| GET    | /profile  | protect, requirePermission      | view_profile        | Current user profile     |
+| PUT    | /profile  | protect, requirePermission      | update_profile      | Update own profile       |
+| GET    | /         | protect, requirePermission      | manage_users        | List users               |
+| GET    | /:id      | No                       | —                            | Get user by ID (public)  |
+| PUT    | /:id      | protect, requireSelfOrPermission | manage_users        | Update user (self or admin) |
+| DELETE | /:id      | protect, requireSelfOrPermission | manage_users        | Delete user (self or admin) |
 
 ### Business (`/api/business`)
 
-| Method | Path        | Auth / Role        | Description                    |
-|--------|-------------|--------------------|--------------------------------|
-| GET    | /           | No                 | Browse approved, unsold; filters, pagination |
-| GET    | /my         | protect, seller/admin | My businesses              |
-| GET    | /:id        | No*                | By ID (public if approved+unsold; owner/admin see any) |
-| POST   | /           | protect, seller/admin, upload | Create business        |
-| PUT    | /:id        | protect, seller/admin, upload | Update business      |
-| DELETE | /:id        | protect, seller/admin | Delete business            |
-| PUT    | /:id/approve| protect, admin     | Approve business              |
-| PUT    | /:id/sold   | protect, seller/admin | Mark as sold               |
+| Method | Path        | Auth                    | Required permission (in DB) | Description                    |
+|--------|-------------|--------------------------|-----------------------------|--------------------------------|
+| GET    | /           | No                       | —                            | Browse approved, unsold       |
+| GET    | /my         | protect, requirePermission | view_seller_my_businesses | My businesses                  |
+| GET    | /:id        | No*                      | —                            | By ID (public/owner logic in controller) |
+| POST   | /           | protect, requirePermission, upload | create_business   | Create business               |
+| PUT    | /:id        | protect, requirePermission, upload | update_business   | Update business               |
+| DELETE | /:id        | protect, requirePermission | delete_business     | Delete business               |
+| PUT    | /:id/approve| protect, requirePermission | manage_business_approval | Approve business        |
+| PUT    | /:id/sold   | protect, requirePermission | mark_business_sold  | Mark as sold                  |
 
 ### Admin (`/api/admin`)
 
-All require **protect** and **authorize("admin")**.
+All require **protect** and permission checks (e.g. `requirePermission("view_admin_dashboard")`).
 
-| Method | Path                    | Description                |
-|--------|-------------------------|----------------------------|
-| GET    | /dashboard              | Stats: totalUsers, totalActiveBusinesses, dealsClosed |
-| GET    | /activities             | Recent activity (limit)    |
-| GET    | /businesses             | List all businesses        |
-| GET    | /businesses/pending     | List pending businesses    |
-| PUT    | /businesses/:id/approve | Approve                    |
-| PUT    | /businesses/:id/reject  | Reject                     |
-| GET    | /users                  | List all users             |
-| PUT    | /users/:id/ban          | Ban/unban user             |
-| DELETE | /users/:id              | Delete user                |
-| GET    | /contacts               | List all contacts          |
-| DELETE | /contacts/:id           | Delete contact             |
+| Method | Path                    | Required permission (in DB) | Description                |
+|--------|-------------------------|-----------------------------|----------------------------|
+| GET    | /dashboard              | view_admin_dashboard        | Dashboard stats            |
+| GET    | /activities             | view_admin_activities      | Recent activity            |
+| GET    | /businesses             | view_admin_business         | List all businesses        |
+| GET    | /businesses/pending     | view_admin_business         | List pending               |
+| PUT    | /businesses/:id/approve | manage_business_approval   | Approve                    |
+| PUT    | /businesses/:id/reject  | manage_business_approval   | Reject                     |
+| GET    | /users                  | view_admin_users            | List all users             |
+| PUT    | /users/:id/ban          | manage_users                | Ban/unban user             |
+| DELETE | /users/:id              | manage_users                | Delete user                |
+| GET    | /contacts               | manage_contacts             | List all contacts          |
+| DELETE | /contacts/:id           | manage_contacts             | Delete contact             |
 
 ### Contacts (`/api/contacts`)
 
-All require **protect** and **authorize("buyer", "seller", "admin")**.
+All require **protect** and permission checks.
 
-| Method | Path  | Description           |
-|--------|-------|-----------------------|
-| POST   | /     | Create contact        |
-| GET    | /my   | My contacts           |
-| GET    | /:id  | Contact by ID         |
-| PUT    | /:id  | Update contact        |
-| DELETE | /:id  | Delete contact        |
+| Method | Path  | Required permission (in DB) | Description           |
+|--------|-------|-----------------------------|-----------------------|
+| POST   | /     | create_contact              | Create contact        |
+| GET    | /my   | view_my_contacts            | My contacts           |
+| GET    | /:id  | view_contact                | Contact by ID         |
+| PUT    | /:id  | update_contact              | Update contact        |
+| DELETE | /:id  | delete_contact              | Delete contact        |
 
 ### Roles (`/api/roles`)
 
-All require **protect** and **requireAdminOrPermission("manage_roles")**.
+All require **protect** and `requirePermission("manage_roles")`.
 
 | Method | Path  | Description   |
 |--------|-------|---------------|
@@ -331,7 +335,7 @@ All require **protect** and **requireAdminOrPermission("manage_roles")**.
 
 ### Permissions (`/api/permissions`)
 
-All require **protect** and **requireAdminOrPermission("manage_permissions")**.
+All require **protect** and `requirePermission("manage_permissions")`.
 
 | Method | Path  | Description      |
 |--------|-------|------------------|
@@ -343,7 +347,7 @@ All require **protect** and **requireAdminOrPermission("manage_permissions")**.
 
 ### Role-Permissions (`/api/role-permissions`)
 
-All require **protect** and **requireAdminOrPermission("manage_role_permissions")**.
+All require **protect** and `requirePermission("manage_role_permissions")`.
 
 | Method | Path                                      | Description                    |
 |--------|-------------------------------------------|--------------------------------|
@@ -358,21 +362,21 @@ All require **protect** and **requireAdminOrPermission("manage_role_permissions"
 
 ### Menus (`/api/menus`)
 
-| Method | Path  | Auth / Permission     | Description                          |
-|--------|-------|------------------------|--------------------------------------|
-| GET    | /     | No                     | List all (optional parentId query)   |
-| GET    | /me   | protect                | Menus for current user (by permissions) |
-| GET    | /:id  | No                     | Get menu by ID                       |
-| POST   | /     | protect, manage_menus  | Create menu                          |
-| PUT    | /:id  | protect, manage_menus  | Update menu                          |
-| DELETE | /:id  | protect, manage_menus  | Delete menu                          |
+| Method | Path  | Auth                    | Required permission (in DB) | Description                          |
+|--------|-------|--------------------------|-----------------------------|--------------------------------------|
+| GET    | /     | No                       | —                            | List all (optional parentId query)   |
+| GET    | /me   | protect, requirePermission | view_menus_me        | Menus for current user               |
+| GET    | /:id  | No                       | —                            | Get menu by ID                       |
+| POST   | /     | protect, requirePermission | manage_menus         | Create menu                          |
+| PUT    | /:id  | protect, requirePermission | manage_menus         | Update menu                          |
+| DELETE | /:id  | protect, requirePermission | manage_menus         | Delete menu                          |
 
 ### Settings (`/api/settings`)
 
-| Method | Path | Auth / Permission     | Description   |
-|--------|------|------------------------|---------------|
-| GET    | /    | protect, manage_settings | Get settings |
-| PUT    | /    | protect, manage_settings | Update settings |
+| Method | Path | Auth                    | Required permission (in DB) | Description   |
+|--------|------|--------------------------|-----------------------------|----------------|
+| GET    | /    | protect, requirePermission | manage_settings     | Get settings  |
+| PUT    | /    | protect, requirePermission | manage_settings     | Update settings |
 
 ---
 
@@ -400,9 +404,8 @@ All require **protect** and **requireAdminOrPermission("manage_role_permissions"
 
 - **Login:** POST `/api/auth/login` with `email`, `password` → bcrypt compare → JWT signed with `id`, expiry 1d → returns `token` and `user` (password stripped).
 - **Register:** POST `/api/auth/register` with `name`, `email`, `password`, `role` (role **name**) → role resolved to Role document → user created with `roleId` → JWT and user returned.
-- **Protected routes:** Send header `Authorization: Bearer <token>`. `protect` sets `req.user` (with `role` from `roleId.name`). Banned users get 403.
-- **Role-based:** `authorize("admin", "seller")` etc. use `req.user.role`.
-- **Permission-based:** `requireAdminOrPermission("manage_users")` etc.: admin always allowed; otherwise RolePermission is checked for the given permission names. See **ROLE_MENU_PERMISSION_FLOW.md** for permission names and menu visibility.
+- **Protected routes:** Send header `Authorization: Bearer <token>`. `protect` sets `req.user` and loads **`req.user.permissions`** (permission names for the user’s role from RolePermission + Permission). Banned users get 403.
+- **Permission checks:** Protected API routes use middleware like `requirePermission(...)` and `requireSelfOrPermission(...)` to check whether `req.user.permissions` contains a required permission name (RolePermission → Permission).
 
 ---
 
@@ -410,12 +413,12 @@ All require **protect** and **requireAdminOrPermission("manage_role_permissions"
 
 - **`npm run dev`** — Start server with nodemon (`src/server.js`).
 - **`npm run seed:roles`** — `node scripts/seed-roles.js`: creates roles (admin, seller, buyer) and basic menus (bottom nav + drawer).
+- **`npm run seed:rbac`** — `node scripts/seed-rbac.js`: full RBAC — roles, admin/seller/buyer users, menus, permissions (with menuId), role-permissions (seller/buyer/admin permission sets). Default credentials: ali@gmail.com/admin123, seller@example.com/seller123, buyer@example.com/buyer123.
 - **`npm run test:api`** — `node scripts/test-api.js`: runs API tests (server must be running).
 
 Other scripts (run with `node scripts/<name>.js`):
 
 - **seed-menus.js** — Menus only.
-- **seed-rbac.js** — Full RBAC: roles, admin/seller/buyer users, menus, permissions (with menuId), role-permissions (seller view_seller_*; admin all). Default credentials: ali@gmail.com/admin123, seller@example.com/seller123, buyer@example.com/buyer123.
 - **seed-activities.js**, **seed-admin-and-home.js**, **seed-seller-menus.js** — Additional seed data as needed.
 
 ---
@@ -429,8 +432,9 @@ Other scripts (run with `node scripts/<name>.js`):
 | Auth                    | `POST /api/auth/login`, `POST /api/auth/register` |
 | Token                   | `Authorization: Bearer <token>`                 |
 | Roles                   | admin, seller, buyer (seed or create via API)   |
+| Route permissions       | Enforced in code using middleware like `requirePermission(...)` (permission names are stored in DB; the route specifies which permission(s) are required). |
 | Permissions & menus     | See **ROLE_MENU_PERMISSION_FLOW.md**            |
 | Business images         | Optional; set CLOUDINARY_* in .env               |
-| First-time setup        | Set MONGO_URI, JWT_SECRET; run seed (e.g. seed-rbac.js) |
+| First-time setup        | Set MONGO_URI, JWT_SECRET; run `npm run seed:rbac` |
 
 For request/response examples and Postman/cURL, see **TESTING_GUIDE.md**.

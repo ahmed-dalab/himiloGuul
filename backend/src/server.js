@@ -19,7 +19,7 @@ const app = express();
 
 // Connect to the database
 connectDB();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Enable CORS for development (allows Flutter web / Chrome requests)
 app.use(cors());

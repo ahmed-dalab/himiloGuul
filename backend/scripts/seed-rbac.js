@@ -52,6 +52,8 @@ const SEED_MENUS = [
   { name: "Menus", path: "/admin/menus" },
   { name: "Settings", path: "/admin/settings" },
   { name: "Profile", path: "/admin/profile" },
+  // Hidden/system menu used to attach API-only permissions (not shown in /api/menus/me)
+  { name: "System", path: "/__system" },
 ];
 
 // Permission name -> single menu path (one permission = one menu)
@@ -61,6 +63,26 @@ const PERMISSION_TO_MENU_PATH = {
   view_seller_my_businesses: "/seller/my-businesses",
   view_seller_contacts: "/seller/contacts",
   view_seller_profile: "/seller/profile",
+
+  // API-only permissions (attached to hidden system menu)
+  view_profile: "/__system",
+  update_profile: "/__system",
+
+  create_business: "/__system",
+  update_business: "/__system",
+  delete_business: "/__system",
+  mark_business_sold: "/__system",
+  manage_business_approval: "/__system",
+
+  create_contact: "/__system",
+  view_my_contacts: "/__system",
+  view_contact: "/__system",
+  update_contact: "/__system",
+  delete_contact: "/__system",
+  manage_contacts: "/__system",
+
+  view_admin_activities: "/__system",
+
   // Admin portal (view + manage; multiple permissions can point to same menu)
   view_admin_dashboard: "/admin",
   view_admin_business: "/admin/business",
@@ -77,6 +99,10 @@ const PERMISSION_TO_MENU_PATH = {
   view_admin_settings: "/admin/settings",
   manage_settings: "/admin/settings",
   view_admin_profile: "/admin/profile",
+
+  update_user: "/__system",
+  delete_user: "/__system",
+  view_menus_me: "/__system",
 };
 
 const SELLER_PERMISSION_NAMES = [
@@ -84,6 +110,33 @@ const SELLER_PERMISSION_NAMES = [
   "view_seller_my_businesses",
   "view_seller_contacts",
   "view_seller_profile",
+  "view_profile",
+  "update_profile",
+  "create_business",
+  "update_business",
+  "delete_business",
+  "mark_business_sold",
+  "create_contact",
+  "view_my_contacts",
+  "view_contact",
+  "update_contact",
+  "delete_contact",
+  "update_user",
+  "delete_user",
+  "view_menus_me",
+];
+
+const BUYER_PERMISSION_NAMES = [
+  "view_profile",
+  "update_profile",
+  "create_contact",
+  "view_my_contacts",
+  "view_contact",
+  "update_contact",
+  "delete_contact",
+  "update_user",
+  "delete_user",
+  "view_menus_me",
 ];
 
 async function seed() {
@@ -187,9 +240,16 @@ async function seed() {
     for (const menu of SEED_MENUS) {
       let m = await Menu.findOne({ path: menu.path });
       if (!m) {
-        m = await Menu.create({ name: menu.name, path: menu.path, parentId: null });
+        const isActive = menu.path === "/__system" ? false : true;
+        m = await Menu.create({ name: menu.name, path: menu.path, parentId: null, isActive });
         console.log(`  ✓ Created menu "${menu.name}" (${menu.path})`);
       } else {
+        // Ensure /__system stays hidden
+        if (menu.path === "/__system" && m.isActive !== false) {
+          m.isActive = false;
+          await m.save();
+          console.log(`  ✓ Updated menu "${menu.name}" (${menu.path}) isActive=false`);
+        }
         console.log(`  ✓ Menu "${menu.name}" (${menu.path}) already exists`);
       }
       menuByPath[menu.path] = m;
@@ -228,6 +288,7 @@ async function seed() {
       if (!p) continue;
 
       const assignToSeller = SELLER_PERMISSION_NAMES.includes(name);
+      const assignToBuyer = BUYER_PERMISSION_NAMES.includes(name);
       const assignToAdmin = true;
 
       if (assignToSeller) {
@@ -238,6 +299,16 @@ async function seed() {
         if (!existsSeller) {
           await RolePermission.create({ roleId: sellerRole._id, permissionId: p._id });
           console.log(`  ✓ Assigned "${name}" to seller`);
+        }
+      }
+      if (assignToBuyer) {
+        const existsBuyer = await RolePermission.findOne({
+          roleId: buyerRole._id,
+          permissionId: p._id,
+        });
+        if (!existsBuyer) {
+          await RolePermission.create({ roleId: buyerRole._id, permissionId: p._id });
+          console.log(`  ✓ Assigned "${name}" to buyer`);
         }
       }
       if (assignToAdmin) {

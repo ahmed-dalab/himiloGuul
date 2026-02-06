@@ -1,22 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, token } = useAuth();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo") || "/dashboard";
+  const { register, token, ready } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (ready && token) {
+      router.replace(returnTo.startsWith("/") ? returnTo : "/dashboard");
+    }
+  }, [ready, token, router, returnTo]);
+
   if (token) {
-    router.replace("/dashboard");
     return null;
   }
 
@@ -25,8 +32,8 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register(name, email, password); // always registers as buyer
-      router.replace("/dashboard");
+      await register(name, email, password, "buyer");
+      router.replace(returnTo.startsWith("/") ? returnTo : "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -41,7 +48,9 @@ export default function RegisterPage() {
           <UserPlus className="h-6 w-6 text-blue-600" aria-hidden />
           <h1 className="text-xl font-semibold text-slate-800">Register</h1>
         </div>
-        <p className="mb-4 text-sm text-slate-600">Create an account as a buyer to browse and view businesses.</p>
+        <p className="mb-4 text-sm text-slate-600">
+          Create an account as a <strong>buyer</strong> to browse businesses and send inquiries to sellers.
+        </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && (
             <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

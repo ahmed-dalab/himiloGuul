@@ -6,26 +6,40 @@ const {
   updateContact,
   deleteContact,
 } = require("../controllers/contactController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  requireSellerOrBuyerOrPermission,
+  requireAdminOrSellerOrBuyerOrPermission,
+} = require("../middlewares/authMiddleware");
 
 const router = Router();
 
-// All contact routes require authentication
 router.use(protect);
 
-// Create contact (buyers can create)
-router.post("/", authorize("buyer", "seller", "admin"), createContact);
-
-// Get my contacts (buyer or seller can view their contacts)
-router.get("/my", authorize("buyer", "seller", "admin"), getMyContacts);
-
-// Get contact details by ID
-router.get("/:id", authorize("buyer", "seller", "admin"), getContactById);
-
-// Update contact (buyer or seller can update)
-router.put("/:id", authorize("buyer", "seller", "admin"), updateContact);
-
-// Delete contact (buyer or seller can delete)
-router.delete("/:id", authorize("buyer", "seller", "admin"), deleteContact);
+router.post(
+  "/",
+  requireSellerOrBuyerOrPermission("create_contact"),
+  createContact,
+);
+router.get(
+  "/my",
+  requireSellerOrBuyerOrPermission("view_my_contacts"),
+  getMyContacts,
+);
+router.get(
+  "/:id",
+  requireAdminOrSellerOrBuyerOrPermission("view_contact"),
+  getContactById,
+);
+router.put(
+  "/:id",
+  requireSellerOrBuyerOrPermission("update_contact"),
+  updateContact,
+);
+router.delete(
+  "/:id",
+  requireSellerOrBuyerOrPermission("delete_contact"),
+  deleteContact,
+);
 
 module.exports = router;

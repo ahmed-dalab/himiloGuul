@@ -8,32 +8,22 @@ const {
   updateUser,
   deleteUser,
 } = require("../controllers/userController");
-const { protect, requireAdminOrPermission } = require("../middlewares/authMiddleware");
+const { protect, requirePermission, requireAdminOrPermission, requireSellerOrBuyerOrPermission, requireSelfOrAdminOrPermission } = require("../middlewares/authMiddleware");
 
 const router = Router();
 
-// Protected routes (authentication required)
+// Protected routes
 // Note: /profile routes must come before /:id routes to avoid route conflicts
 
-// POST /api/users - Create user and assign role (admin only; requires manage_users)
 router.post("/", protect, requireAdminOrPermission("manage_users"), createUser);
-
-// GET /api/users/profile - Get current user profile
-router.get("/profile", protect, getUserProfile);
-
-// PUT /api/users/profile - Update own profile
-router.put("/profile", protect, updateUserProfile);
-
-// GET /api/users - List users (admin only; must be before /:id)
+router.get("/profile", protect, requireSellerOrBuyerOrPermission("view_profile"), getUserProfile);
+router.put("/profile", protect, requireSellerOrBuyerOrPermission("update_profile"), updateUserProfile);
 router.get("/", protect, requireAdminOrPermission("manage_users"), getAllUsers);
 
-// GET /api/users/:id - Get user public info
+// GET /api/users/:id - Get user public info (no auth)
 router.get("/:id", getUserById);
 
-// PUT /api/users/:id - Update user (self or admin)
-router.put("/:id", protect, updateUser);
-
-// DELETE /api/users/:id - Delete user (admin and the user himself can access)
-router.delete("/:id", protect, deleteUser);
+router.put("/:id", protect, requireSelfOrAdminOrPermission("manage_users"), updateUser);
+router.delete("/:id", protect, requireSelfOrAdminOrPermission("manage_users"), deleteUser);
 
 module.exports = router;

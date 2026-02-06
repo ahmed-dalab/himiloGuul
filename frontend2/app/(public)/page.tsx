@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { businessesApi, type Business } from "@/lib/api";
@@ -18,18 +17,10 @@ function formatCategory(c?: string) {
 }
 
 export default function PublicHomePage() {
-  const router = useRouter();
-  const { token, ready } = useAuth();
+  const { token } = useAuth();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (token && ready) {
-      router.replace("/dashboard");
-      return;
-    }
-  }, [token, ready, router]);
 
   useEffect(() => {
     setLoading(true);
@@ -41,8 +32,6 @@ export default function PublicHomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (token !== null && ready) return null; // redirecting to dashboard
-
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
@@ -50,7 +39,9 @@ export default function PublicHomePage() {
           Businesses for sale
         </h1>
         <p className="mt-1 text-slate-600">
-          Browse approved listings. Sign up as a buyer to get started.
+          {token
+            ? "Browse active listings and send inquiries to sellers."
+            : "Browse approved listings. Sign in or register as a buyer to send inquiries."}
         </p>
       </div>
 

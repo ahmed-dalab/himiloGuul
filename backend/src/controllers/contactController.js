@@ -215,7 +215,7 @@ const getContactById = async (req, res) => {
 const updateContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const { message, status } = req.body;
+    const { message, status, reply } = req.body;
 
     const contact = await Contact.findById(id);
 
@@ -240,12 +240,38 @@ const updateContact = async (req, res) => {
 
     // Update fields
     if (message !== undefined) {
-      // Only buyer can update message initially, seller can respond
+      // Buyer can update their original message; seller should use "reply"
       if (isBuyer || isAdmin) {
-        contact.message = message;
+        contact.message = String(message).trim();
       } else if (isSeller) {
-        // Seller can append to message or update status
-        contact.message = message;
+        return res.status(403).json({
+          success: false,
+          message: "Sellers cannot edit the buyer message. Use reply instead.",
+        });
+      }
+    }
+
+    // Seller reply (visible to buyer and seller)
+    if (reply !== undefined) {
+      if (isSeller || isAdmin) {
+        const trimmed = String(reply).trim();
+        if (!trimmed) {
+          return res.status(400).json({
+            success: false,
+            message: "Reply cannot be empty",
+          });
+        }
+        contact.reply = trimmed;
+        contact.repliedAt = new Date();
+        // Auto-mark as responded when seller replies (unless caller explicitly sets closed)
+        if (!status) {
+          contact.status = "responded";
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: "Only the seller can reply to an inquiry",
+        });
       }
     }
 

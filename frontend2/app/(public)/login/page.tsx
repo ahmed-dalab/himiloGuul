@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
@@ -8,6 +8,8 @@ import { LogIn } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo") || "/dashboard";
   const { login, token, ready } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,9 +18,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (ready && token) {
-      router.replace("/dashboard");
+      router.replace(returnTo.startsWith("/") ? returnTo : "/dashboard");
     }
-  }, [ready, token, router]);
+  }, [ready, token, router, returnTo]);
 
   if (ready && token) {
     return null;
@@ -30,7 +32,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace("/dashboard");
+      router.replace(returnTo.startsWith("/") ? returnTo : "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

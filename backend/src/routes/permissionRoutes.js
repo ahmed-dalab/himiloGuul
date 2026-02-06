@@ -10,7 +10,6 @@ const { protect, requireAdminOrPermission } = require("../middlewares/authMiddle
 
 const router = Router();
 
-// All permission routes require authentication and admin role OR permission "manage_permissions"
 router.use(protect);
 router.use(requireAdminOrPermission("manage_permissions"));
 

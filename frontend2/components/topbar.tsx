@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Store, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Store, LogIn, UserPlus, LogOut, LayoutDashboard, Compass } from "lucide-react";
 
 export function Topbar() {
   const { token, user, logout } = useAuth();
@@ -17,13 +17,21 @@ export function Topbar() {
         <nav className="flex items-center gap-2">
           {token ? (
             <>
-              <span className="mr-2 text-sm text-slate-600">{user?.name ?? user?.email}</span>
+              <Link
+                href="/"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                <Compass className="h-4 w-4" aria-hidden />
+                Browse
+              </Link>
               <Link
                 href="/dashboard"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
               >
+                <LayoutDashboard className="h-4 w-4" aria-hidden />
                 Dashboard
               </Link>
+              <span className="mr-1 text-sm text-slate-500">{user?.name ?? user?.email}</span>
               <button
                 type="button"
                 onClick={() => logout()}

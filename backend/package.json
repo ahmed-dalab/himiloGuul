@@ -8,6 +8,7 @@
     "test:api": "node scripts/test-api.js",
     "seed:roles": "node scripts/seed-roles.js",
     "seed:menus": "node scripts/seed-menus.js",
+    "seed:rbac": "node scripts/seed-rbac.js",
     "seed": "node scripts/seed-roles.js"
   },
   "keywords": [],

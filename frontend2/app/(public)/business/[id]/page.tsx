@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { businessesApi, type Business } from "@/lib/api";
-import { Store, MapPin, Mail, Phone, Globe, ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { businessesApi, contactsApi, type Business } from "@/lib/api";
+import { Store, MapPin, Mail, Phone, Globe, ArrowLeft, Loader2, MessageSquare, LogIn, UserPlus } from "lucide-react";
 
 function formatPrice(n?: number) {
   if (n == null) return "—";
@@ -18,11 +19,15 @@ function formatCategory(c?: string) {
 
 export default function BusinessDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
+  const { user, token } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -34,6 +39,41 @@ export default function BusinessDetailPage() {
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (user) {
+      setContactForm((f) => ({
+        ...f,
+        name: user.name ?? f.name,
+        email: user.email ?? f.email,
+      }));
+    }
+  }, [user?.name, user?.email]);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!business?.owner || !token) return;
+    const ownerId = typeof business.owner === "object" ? business.owner._id : business.owner;
+    if (!ownerId) return;
+    setContactSubmitting(true);
+    setContactError("");
+    try {
+      await contactsApi.create({
+        sellerRef: ownerId,
+        businessRef: business._id,
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        phone: contactForm.phone.trim() || undefined,
+        message: contactForm.message.trim(),
+      });
+      setContactSuccess(true);
+      setContactForm((f) => ({ ...f, message: "" }));
+    } catch (err) {
+      setContactError(err instanceof Error ? err.message : "Failed to send inquiry");
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -169,6 +209,129 @@ export default function BusinessDetailPage() {
               </p>
             </div>
           )}
+
+          {/* Contact / Inquiry form */}
+          <div className="mt-10 border-t border-slate-200 pt-8">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
+              <MessageSquare className="h-5 w-5 text-slate-500" aria-hidden />
+              Send an inquiry
+            </h2>
+            {token && business?.owner && typeof business.owner === "object" && user?._id === business.owner._id ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600">
+                This is your listing. Inquiries from buyers will appear in your{" "}
+                <Link href="/dashboard/inquiries" className="font-medium text-blue-600 hover:underline">
+                  Inquiries
+                </Link>{" "}
+                dashboard.
+              </p>
+            ) : !token ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-slate-700">Please log in or register to send a message to the seller.</p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href={`/login?returnTo=${encodeURIComponent(`/business/${id}`)}`}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    <LogIn className="h-4 w-4" aria-hidden />
+                    Log in
+                  </Link>
+                  <Link
+                    href={`/register?returnTo=${encodeURIComponent(`/business/${id}`)}`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    Register
+                  </Link>
+                </div>
+              </div>
+            ) : contactSuccess ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
+                Your message has been sent. The seller will see it in their Inquiries.
+              </div>
+            ) : (
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                {contactError && (
+                  <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {contactError}
+                  </div>
+                )}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="contact-name" className="mb-1 block text-sm font-medium text-slate-600">
+                      Your name *
+                    </label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      required
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact-email" className="mb-1 block text-sm font-medium text-slate-600">
+                      Email *
+                    </label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      required
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="contact-phone" className="mb-1 block text-sm font-medium text-slate-600">
+                    Phone (optional)
+                  </label>
+                  <input
+                    id="contact-phone"
+                    type="tel"
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-message" className="mb-1 block text-sm font-medium text-slate-600">
+                    Message *
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    required
+                    rows={4}
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm((f) => ({ ...f, message: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Ask about this business, request more details, or express your interest…"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={contactSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {contactSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4" aria-hidden />
+                      Send inquiry
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
