@@ -107,9 +107,15 @@ export default function RolePermissionsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Role Permissions</h1>
-        <button type="button" onClick={openAssign} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-          Assign permission to role
-        </button>
+        {roles.length === 0 || permissions.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            Create at least one role and one permission first.
+          </p>
+        ) : (
+          <button type="button" onClick={openAssign} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Assign permission to role
+          </button>
+        )}
       </div>
       {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
       {loading ? (

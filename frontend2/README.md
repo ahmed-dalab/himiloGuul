@@ -4,21 +4,21 @@ Admin UI for the HimiloGuul backend. Connects to the Node/Express API for roles,
 
 ## Setup
 
-1. **Backend** must be running (see `backend/`). Default: `http://localhost:3000`.
+1. **Backend** must be running (see `backend/`). Default: `http://localhost:3001`.
 
 2. **Environment**  
    Copy the example env and set the API URL if needed:
    ```bash
    cp .env.local.example .env.local
    ```
-   Edit `.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:3000/api`
+   Edit `.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:3001/api`
 
 3. **Install and run**
    ```bash
    npm install
    npm run dev
    ```
-   Frontend runs on **http://localhost:3001** (backend on 3000). Open [http://localhost:3001](http://localhost:3001). You’ll be redirected to login.
+   Frontend runs on **http://localhost:3000** (backend on 3001). Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to login.
 
 ## Flow (matches backend)
 
@@ -29,6 +29,23 @@ Admin UI for the HimiloGuul backend. Connects to the Node/Express API for roles,
 5. **Role Permissions** – Assign permissions to roles.
 
 After login, use the sidebar: Dashboard, Roles, Users, Menus, Permissions, Role Permissions.
+
+## Backend + Frontend integration
+
+With the backend running and logged in as **admin**, you can:
+
+- **Roles** – Create, edit, delete roles (e.g. admin, seller, buyer).
+- **Users** – Create users (name, email, password, role), edit, ban/unban, delete.
+- **Menus** – Create menus (name, path), edit, delete.
+- **Permissions** – Create permissions (name + menu), edit, delete. Create at least one menu first.
+- **Role Permissions** – Assign a permission to a role; remove assignments. Needs at least one role and one permission.
+
+**Other models** (admin/seller):
+
+- **Admin:** Dashboard (stats, activity), Businesses (list all, pending, approve/reject), Contacts (list, delete).
+- **Seller:** My businesses (CRUD, multi-step form, optional images), Inquiries (contacts about your listings).
+
+API base URL is set via `NEXT_PUBLIC_API_URL` (default `http://localhost:3001/api` when unset).
 
 ## Seed data
 

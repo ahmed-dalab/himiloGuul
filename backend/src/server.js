@@ -19,7 +19,7 @@ const app = express();
 
 // Connect to the database
 connectDB();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Enable CORS for development (allows Flutter web / Chrome requests)
 app.use(cors());
@@ -51,11 +51,6 @@ app.use("/api/settings", settingRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).send("Server is healthy");
-});
-
-// Chrome DevTools sometimes requests this; respond so it doesn't 404 in the console
-app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
-  res.status(200).json({});
 });
 
 app.listen(PORT, () => {

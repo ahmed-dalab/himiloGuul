@@ -36,10 +36,8 @@ export async function api<T = unknown>(
   const res = await fetch(url, { ...init, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message =
-      (data as { message?: string }).message ||
-      res.statusText ||
-      "Request failed";
+    const d = data as { message?: string; error?: string };
+    const message = d?.message || d?.error || res.statusText || "Request failed";
     throw new Error(message);
   }
   return data as T;
@@ -61,10 +59,8 @@ export async function apiFormData<T = unknown>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message =
-      (data as { message?: string }).message ||
-      res.statusText ||
-      "Request failed";
+    const d = data as { message?: string; error?: string };
+    const message = d?.message || d?.error || res.statusText || "Request failed";
     throw new Error(message);
   }
   return data as T;

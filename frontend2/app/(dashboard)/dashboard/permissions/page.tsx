@@ -100,9 +100,13 @@ export default function PermissionsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Permissions</h1>
-        <button type="button" onClick={openCreate} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-          Add permission
-        </button>
+        {menus.length === 0 ? (
+          <p className="text-sm text-slate-500">Create a menu first, then add permissions.</p>
+        ) : (
+          <button type="button" onClick={openCreate} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Add permission
+          </button>
+        )}
       </div>
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-slate-600">Filter by menu</label>
